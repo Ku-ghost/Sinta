@@ -1605,9 +1605,11 @@ CREATE TABLE log_pengaduan (
 
         function copySupabaseSql() {
             const textArea = document.getElementById("supabase-sql-textarea");
-            textArea.select();
-            document.execCommand('copy');
-            showCustomDialog('success', 'SQL Disalin', 'Skrip SQL inisialisasi tabel Supabase berhasil disalin ke clipboard.');
+            if (textArea) {
+                textArea.select();
+                document.execCommand('copy');
+                showCustomDialog('success', 'SQL Disalin', 'Skrip SQL inisialisasi tabel Supabase berhasil disalin ke clipboard.');
+            }
         }
 
         function handleHashRouting() {
@@ -1620,24 +1622,40 @@ CREATE TABLE log_pengaduan (
 
             if (currentHash.startsWith('#/portal_pasien')) {
                 STATE.portal = 'public';
-                document.getElementById("admin-gate-btn").innerHTML = '<i class="fa-solid fa-lock"></i> Portal Staf';
-                document.getElementById("admin-gate-btn").className = "btn btn-glass px-3 py-1.5 text-xs border-cyan-500/10 text-cyan-400";
+                const adminGateBtn = document.getElementById("admin-gate-btn");
+                if (adminGateBtn) {
+                    adminGateBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Portal Staf';
+                    adminGateBtn.className = "btn btn-glass px-3 py-1.5 text-xs border-cyan-500/10 text-cyan-400";
+                }
                 
-                document.getElementById("portal-role-label").innerText = "Sistem Edukasi & Pengantaran Obat RSUD Sinjai";
-                document.getElementById("profile-name").innerText = "Pengunjung Umum";
-                document.getElementById("profile-sub").innerText = "Akses Pasien";
+                const portalLabel = document.getElementById("portal-role-label");
+                if (portalLabel) portalLabel.innerText = "Sistem Edukasi & Pengantaran Obat RSUD Sinjai";
+                
+                const profileName = document.getElementById("profile-name");
+                if (profileName) profileName.innerText = "Pengunjung Umum";
+                
+                const profileSub = document.getElementById("profile-sub");
+                if (profileSub) profileSub.innerText = "Akses Pasien";
                 
                 renderTopNavigation();
                 switchModule('pub-beranda-module');
             } 
             else if (currentHash.startsWith('#/portal_apotik')) {
                 STATE.portal = 'internal';
-                document.getElementById("admin-gate-btn").innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Keluar Staf';
-                document.getElementById("admin-gate-btn").className = "btn btn-danger px-3 py-1.5 text-xs font-bold";
+                const adminGateBtn = document.getElementById("admin-gate-btn");
+                if (adminGateBtn) {
+                    adminGateBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Keluar Staf';
+                    adminGateBtn.className = "btn btn-danger px-3 py-1.5 text-xs font-bold";
+                }
                 
-                document.getElementById("portal-role-label").innerText = "Dasbor Pemantauan Apoteker";
-                document.getElementById("profile-name").innerText = "Apt. Andi Rusli, S.Farm";
-                document.getElementById("profile-sub").innerText = "Petugas Jaga";
+                const portalLabel = document.getElementById("portal-role-label");
+                if (portalLabel) portalLabel.innerText = "Dasbor Pemantauan Apoteker";
+                
+                const profileName = document.getElementById("profile-name");
+                if (profileName) profileName.innerText = "Apt. Andi Rusli, S.Farm";
+                
+                const profileSub = document.getElementById("profile-sub");
+                if (profileSub) profileSub.innerText = "Petugas Jaga";
                 
                 renderTopNavigation();
                 switchModule('int-delivery-parent-module');
@@ -1647,27 +1665,40 @@ CREATE TABLE log_pengaduan (
         window.onhashchange = handleHashRouting;
 
         window.onload = function() {
-            handleHashRouting();
-            updateDynamicWhatsAppConfigs();
-            populateTemplateFields();
-            renderLibraryCards();
-            renderDrugDictionaryTable();
-            renderMasterPatientsTable();
-            renderMasterKelurahanTable();
-            populateKelurahanDropdown();
-            renderMasterRecipesTable();
-            renderPublicAduanList();
-            renderKpiCards();
-            renderMasterWaktuTable();
-            renderGlobalWaktuDropdown();
-            renderDeliveryTable();
-            renderDrugsTags();
-            initializeRealMap();
-            renderCourierWaConfigList();
-            renderComplaintWaConfigList();
+            try {
+                handleHashRouting();
+                updateDynamicWhatsAppConfigs();
+                populateTemplateFields();
+                renderLibraryCards();
+                renderDrugDictionaryTable();
+                renderMasterPatientsTable();
+                renderMasterKelurahanTable();
+                populateKelurahanDropdown();
+                renderMasterRecipesTable();
+                renderPublicAduanList();
+                renderKpiCards();
+                renderMasterWaktuTable();
+                renderGlobalWaktuDropdown();
+                renderDeliveryTable();
+                renderDrugsTags();
+            } catch(e) {
+                console.error("Kesalahan inisialisasi tahap 1:", e);
+            }
 
-            // Set default values
-            document.getElementById("wa-master-robot-number").value = STATE.dinamik_robot_wa;
+            try {
+                initializeRealMap();
+            } catch(e) {
+                console.error("Gagal menginisialisasi Leaflet map:", e);
+            }
+
+            try {
+                renderCourierWaConfigList();
+                renderComplaintWaConfigList();
+                const robotWaEl = document.getElementById("wa-master-robot-number");
+                if (robotWaEl) robotWaEl.value = STATE.dinamik_robot_wa;
+            } catch(e) {
+                console.error("Kesalahan inisialisasi tahap 2:", e);
+            }
 
             setInterval(monitorSlaAndAlerts, 1000);
             setInterval(() => {
@@ -1824,35 +1855,44 @@ CREATE TABLE log_pengaduan (
         }
 
         function initializeRealMap() {
-            const mapContainer = document.getElementById("p-reg-map-container");
-            if (!mapContainer) return;
+            try {
+                const mapContainer = document.getElementById("p-reg-map-container");
+                if (!mapContainer) return;
+                
+                if (typeof L === 'undefined') {
+                    mapContainer.innerHTML = '<div class="h-full flex items-center justify-center text-rose-400 bg-slate-900/50 text-[10px] p-4 text-center">Modul Peta OSM (Leaflet) Gagal Dimuat secara Eksternal. Silakan isi alamat secara manual.</div>';
+                    return;
+                }
 
-            STATE.leafletMap = L.map('p-reg-map-container').setView([STATE.hospitalCoord.lat, STATE.hospitalCoord.lng], 15);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors',
-                maxZoom: 19
-            }).addTo(STATE.leafletMap);
+                STATE.leafletMap = L.map('p-reg-map-container').setView([STATE.hospitalCoord.lat, STATE.hospitalCoord.lng], 15);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(STATE.leafletMap);
 
-            STATE.leafletMarker = L.marker([STATE.hospitalCoord.lat, STATE.hospitalCoord.lng], {
-                draggable: true
-            }).addTo(STATE.leafletMap);
+                STATE.leafletMarker = L.marker([STATE.hospitalCoord.lat, STATE.hospitalCoord.lng], {
+                    draggable: true
+                }).addTo(STATE.leafletMap);
 
-            STATE.leafletMarker.bindPopup("<b>Lokasi Antar</b><br>Geser pin ke titik koordinat rumah pasien.").openPopup();
+                STATE.leafletMarker.bindPopup("<b>Lokasi Antar</b><br>Geser pin ke titik koordinat rumah pasien.").openPopup();
 
-            STATE.leafletMap.on('click', function(e) {
-                STATE.leafletMarker.setLatLng(e.latlng);
-                updateCoordinatesFromMarker(e.latlng);
-            });
+                STATE.leafletMap.on('click', function(e) {
+                    STATE.leafletMarker.setLatLng(e.latlng);
+                    updateCoordinatesFromMarker(e.latlng);
+                });
 
-            STATE.leafletMarker.on('dragend', function(e) {
-                const position = STATE.leafletMarker.getLatLng();
-                updateCoordinatesFromMarker(position);
-            });
-            
-            setTimeout(() => {
-                STATE.leafletMap.invalidateSize();
-            }, 500);
+                STATE.leafletMarker.on('dragend', function(e) {
+                    const position = STATE.leafletMarker.getLatLng();
+                    updateCoordinatesFromMarker(position);
+                });
+                
+                setTimeout(() => {
+                    if (STATE.leafletMap) STATE.leafletMap.invalidateSize();
+                }, 500);
+            } catch(error) {
+                console.error("Gagal memuat peta real:", error);
+            }
         }
         
         function updateCoordinatesFromMarker(latlng) {
@@ -1985,10 +2025,9 @@ CREATE TABLE log_pengaduan (
 
         function updateDynamicWhatsAppConfigs() {
             const pubWaContainer = document.getElementById("success-wa-btn");
-            const encodedText = encodeURIComponent("Halo Apotek RSUD Sinjai, saya baru saja mendaftarkan resep pengantaran.");
-            const waUrl = `https://wa.me/${STATE.system_settings.WA_GATEWAY_NUMBER}?text=${encodedText}`;
-
             if (pubWaContainer) {
+                const encodedText = encodeURIComponent("Halo Apotek RSUD Sinjai, saya baru saja mendaftarkan resep pengantaran.");
+                const waUrl = `https://wa.me/${STATE.system_settings.WA_GATEWAY_NUMBER}?text=${encodedText}`;
                 pubWaContainer.href = waUrl;
             }
         }
@@ -2009,46 +2048,56 @@ CREATE TABLE log_pengaduan (
 
         function showCustomDialog(type, title, message, onConfirm = null, onCancel = null) {
             const overlay = document.getElementById("custom-dialog-overlay");
+            if (!overlay) return;
             const iconEl = document.getElementById("dialog-icon");
             const titleEl = document.getElementById("dialog-title");
             const messageEl = document.getElementById("dialog-message");
             const btnConfirm = document.getElementById("dialog-btn-confirm");
             const btnCancel = document.getElementById("dialog-btn-cancel");
 
-            iconEl.className = "w-11 h-11 rounded-full flex items-center justify-center mx-auto mb-4 text-xl";
-            if (type === 'success') {
-                iconEl.classList.add("bg-emerald-500/15", "text-emerald-400");
-                iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
-            } else if (type === 'danger') {
-                iconEl.classList.add("bg-rose-500/15", "text-rose-400");
-                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-            } else {
-                iconEl.classList.add("bg-sky-500/15", "text-sky-400");
-                iconEl.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+            if (iconEl) {
+                iconEl.className = "w-11 h-11 rounded-full flex items-center justify-center mx-auto mb-4 text-xl";
+                if (type === 'success') {
+                    iconEl.classList.add("bg-emerald-500/15", "text-emerald-400");
+                    iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                } else if (type === 'danger') {
+                    iconEl.classList.add("bg-rose-500/15", "text-rose-400");
+                    iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                } else {
+                    iconEl.classList.add("bg-sky-500/15", "text-sky-400");
+                    iconEl.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+                }
             }
-            titleEl.innerText = title;
-            messageEl.innerHTML = message;
+            if (titleEl) titleEl.innerText = title;
+            if (messageEl) messageEl.innerHTML = message;
 
-            btnConfirm.onclick = function() {
-                overlay.classList.add("hidden");
-                overlay.classList.remove("flex");
-                if (onConfirm) onConfirm();
-            };
-            if (onCancel) {
-                btnCancel.classList.remove("hidden");
-                btnCancel.onclick = function() {
+            if (btnConfirm) {
+                btnConfirm.onclick = function() {
                     overlay.classList.add("hidden");
                     overlay.classList.remove("flex");
-                    if (onCancel) onCancel();
+                    if (onConfirm) onConfirm();
                 };
-            } else btnCancel.classList.add("hidden");
+            }
+            if (btnCancel) {
+                if (onCancel) {
+                    btnCancel.classList.remove("hidden");
+                    btnCancel.onclick = function() {
+                        overlay.classList.add("hidden");
+                        overlay.classList.remove("flex");
+                        if (onCancel) onCancel();
+                    };
+                } else btnCancel.classList.add("hidden");
+            }
             overlay.classList.remove("hidden");
             overlay.classList.add("flex");
         }
 
         function closeQrHandshakeModal() {
-            document.getElementById("qr-handshake-overlay").classList.add("hidden");
-            document.getElementById("qr-handshake-overlay").classList.remove("flex");
+            const qrOverlay = document.getElementById("qr-handshake-overlay");
+            if (qrOverlay) {
+                qrOverlay.classList.add("hidden");
+                qrOverlay.classList.remove("flex");
+            }
         }
 
         function renderTopNavigation() {
@@ -2149,15 +2198,23 @@ CREATE TABLE log_pengaduan (
         }
 
         function openAuthModal() {
-            document.getElementById("auth-modal-overlay").classList.remove("hidden");
-            document.getElementById("auth-modal-overlay").classList.add("flex");
-            document.getElementById("auth-password").focus();
+            const authOverlay = document.getElementById("auth-modal-overlay");
+            if (authOverlay) {
+                authOverlay.classList.remove("hidden");
+                authOverlay.classList.add("flex");
+            }
+            const authInput = document.getElementById("auth-password");
+            if (authInput) authInput.focus();
         }
 
         function closeAuthModal() {
-            document.getElementById("auth-modal-overlay").classList.add("hidden");
-            document.getElementById("auth-modal-overlay").classList.remove("flex");
-            document.getElementById("auth-password").value = "";
+            const authOverlay = document.getElementById("auth-modal-overlay");
+            if (authOverlay) {
+                authOverlay.classList.add("hidden");
+                authOverlay.classList.remove("flex");
+            }
+            const authInput = document.getElementById("auth-password");
+            if (authInput) authInput.value = "";
         }
 
         function handleAuthKeyPress(event) {
@@ -2165,7 +2222,9 @@ CREATE TABLE log_pengaduan (
         }
 
         function submitAuthInternal() {
-            const pw = document.getElementById("auth-password").value;
+            const pwEl = document.getElementById("auth-password");
+            if (!pwEl) return;
+            const pw = pwEl.value;
             if (pw === "sinta2026" || pw === "admin") {
                 STATE.currentUserRole = 'Apoteker_Piket';
                 closeAuthModal(); 
@@ -2191,7 +2250,7 @@ CREATE TABLE log_pengaduan (
             }
 
             const consentBox = document.getElementById("p-reg-consent");
-            if (!consentBox.checked) {
+            if (consentBox && !consentBox.checked) {
                 showCustomDialog('danger', 'Persetujuan Layanan', 'Harap centang persetujuan layanan SINTA & SYIFA di akhir formulir.');
                 return;
             }
@@ -2451,8 +2510,11 @@ CREATE TABLE log_pengaduan (
 
         function openCourierManualBypassDialog(id) {
             STATE.pending_delivery_sim_id = id;
-            document.getElementById("duration-simulation-overlay").classList.remove("hidden");
-            document.getElementById("duration-simulation-overlay").classList.add("flex");
+            const simOverlay = document.getElementById("duration-simulation-overlay");
+            if (simOverlay) {
+                simOverlay.classList.remove("hidden");
+                simOverlay.classList.add("flex");
+            }
         }
 
         function submitDurationSimulationResult(minutes) {
@@ -2465,8 +2527,11 @@ CREATE TABLE log_pengaduan (
             ant.status = "Selesai_Sesuai";
             ant.rating = 5; 
 
-            document.getElementById("duration-simulation-overlay").classList.add("hidden");
-            document.getElementById("duration-simulation-overlay").classList.remove("flex");
+            const simOverlay = document.getElementById("duration-simulation-overlay");
+            if (simOverlay) {
+                simOverlay.classList.add("hidden");
+                simOverlay.classList.remove("flex");
+            }
 
             renderDeliveryTable();
             showCustomDialog('success', 'Bypass Berhasil', `Konfirmasi penyelesaian berhasil terekam. Durasi: ${minutes} menit, Rating verbal: ⭐ 5/5.`);
@@ -2534,6 +2599,7 @@ CREATE TABLE log_pengaduan (
         function submitComplaint() {
             const nameEl = document.getElementById("complaint-name");
             const descEl = document.getElementById("complaint-desc");
+            if (!nameEl || !descEl) return;
             const name = nameEl.value.trim() || "Pasien SINTA";
             const desc = descEl.value.trim();
 
@@ -2639,12 +2705,18 @@ CREATE TABLE log_pengaduan (
             if (!p) return;
 
             const qrImg = document.getElementById("qr-code-img");
-            qrImg.src = `https://placehold.co/160x160/ffffff/000000?text=${encodeURIComponent(p.nama_lengkap.substring(0, 12))}`;
-            document.getElementById("qr-patient-name").innerText = p.nama_lengkap;
-            document.getElementById("qr-patient-wa").innerText = `WhatsApp: +${p.nomor_whatsapp}`;
+            const patName = document.getElementById("qr-patient-name");
+            const patWa = document.getElementById("qr-patient-wa");
+            
+            if (qrImg) qrImg.src = `https://placehold.co/160x160/ffffff/000000?text=${encodeURIComponent(p.nama_lengkap.substring(0, 12))}`;
+            if (patName) patName.innerText = p.nama_lengkap;
+            if (patWa) patWa.innerText = `WhatsApp: +${p.nomor_whatsapp}`;
 
-            document.getElementById("qr-handshake-overlay").classList.remove("hidden");
-            document.getElementById("qr-handshake-overlay").classList.add("flex");
+            const handshakeOverlay = document.getElementById("qr-handshake-overlay");
+            if (handshakeOverlay) {
+                handshakeOverlay.classList.remove("hidden");
+                handshakeOverlay.classList.add("flex");
+            }
         }
 
         function deletePatientPrompt(id) {
@@ -2805,6 +2877,7 @@ CREATE TABLE log_pengaduan (
 
         function saveCustomEstimationTime() {
             const input = document.getElementById("crud-waktu-name");
+            if (!input) return;
             const val = input.value.trim();
             if (!val) {
                 showCustomDialog('danger', 'Opsi Kosong', 'Ketikkan estimasi kustom waktu pengantaran.');
@@ -3014,15 +3087,21 @@ CREATE TABLE log_pengaduan (
             if (STATE.selectedChatSessionIndex !== null) {
                 const activeSession = STATE.chats[STATE.selectedChatSessionIndex];
                 const timerEl = document.getElementById("sla-countdown-timer");
-                if (activeSession.isBotActive) document.getElementById("sla-countdown-box").style.display = "none";
+                if (activeSession.isBotActive) {
+                    const timerBox = document.getElementById("sla-countdown-box");
+                    if (timerBox) timerBox.style.display = "none";
+                }
                 else {
-                    document.getElementById("sla-countdown-box").style.display = "inline-flex";
+                    const timerBox = document.getElementById("sla-countdown-box");
+                    if (timerBox) timerBox.style.display = "inline-flex";
                     const elapsedMs = Date.now() - activeSession.lastIncomingTime;
                     const elapsedMin = Math.floor(elapsedMs / (60 * 1000));
                     const elapsedSec = Math.floor((elapsedMs % (60 * 1000)) / 1000);
-                    timerEl.innerText = `${elapsedMin}:${elapsedSec < 10 ? "0" + elapsedSec : elapsedSec}`;
-                    if (elapsedMin >= STATE.system_settings.SLA_RESPONSE_MINUTES) timerEl.style.color = "var(--danger-color)";
-                    else timerEl.style.color = "var(--success-color)";
+                    if (timerEl) {
+                        timerEl.innerText = `${elapsedMin}:${elapsedSec < 10 ? "0" + elapsedSec : elapsedSec}`;
+                        if (elapsedMin >= STATE.system_settings.SLA_RESPONSE_MINUTES) timerEl.style.color = "var(--danger-color)";
+                        else timerEl.style.color = "var(--success-color)";
+                    }
                 }
             }
         }
@@ -3033,10 +3112,14 @@ CREATE TABLE log_pengaduan (
             const c = STATE.chats[idx];
             document.getElementById("active-chat-name").innerText = c.patientName;
             updateFreezeButtonUI(c.isBotActive);
-            document.getElementById("takeover-action-area").classList.remove("hidden");
-            document.getElementById("takeover-action-area").classList.add("flex");
+            const takeoverArea = document.getElementById("takeover-action-area");
+            if (takeoverArea) {
+                takeoverArea.classList.remove("hidden");
+                takeoverArea.classList.add("flex");
+            }
 
             const body = document.getElementById("chat-conversation-body");
+            if (!body) return;
             body.innerHTML = "";
 
             c.messages.forEach(m => {
@@ -3069,6 +3152,7 @@ CREATE TABLE log_pengaduan (
         function updateFreezeButtonUI(isActive) {
             const btn = document.getElementById("btn-freeze-ai");
             const statusText = document.getElementById("active-chat-status");
+            if (!btn || !statusText) return;
             if (isActive) {
                 btn.className = "btn btn-danger px-3 py-1.5 text-xs font-bold";
                 btn.innerHTML = '<i class="fa-solid fa-hand-holding-medical"></i> Ambil Alih Manual';
@@ -3086,6 +3170,7 @@ CREATE TABLE log_pengaduan (
 
         function submitPharmacistReply() {
             const input = document.getElementById("pharmacist-reply-input");
+            if (!input) return;
             const text = input.value.trim();
             if (!text || STATE.selectedChatSessionIndex === null) return;
 
@@ -3535,17 +3620,27 @@ CREATE TABLE log_pengaduan (
             const k = STATE.kpi;
             const repeatPatients = STATE.master_pasien.filter(p => p.saved_by_staff).length;
 
-            document.getElementById("kpi-val-1").innerText = STATE.chats.length;
-            document.getElementById("kpi-val-2").innerText = STATE.system_settings.SLA_RESPONSE_MINUTES + " mnt";
-            document.getElementById("kpi-val-3").innerText = k.fcrRate + "%";
-            document.getElementById("kpi-val-4").innerText = k.educationCount + " kali";
-            document.getElementById("kpi-val-5").innerText = k.complaints;
-            
-            if (document.getElementById("kpi-val-6")) document.getElementById("kpi-val-6").innerText = repeatPatients + " pasien";
-            if (document.getElementById("kpi-val-7")) document.getElementById("kpi-val-7").innerText = k.commQuality + " / 10";
-            if (document.getElementById("kpi-val-8")) document.getElementById("kpi-val-8").innerText = k.trustIndex + "%";
-            if (document.getElementById("kpi-val-9")) document.getElementById("kpi-val-9").innerText = k.satisfaction + "%";
-            if (document.getElementById("kpi-val-10")) document.getElementById("kpi-val-10").innerText = STATE.master_pasien.length + " jiwa";
+            const kpi1 = document.getElementById("kpi-val-1");
+            const kpi2 = document.getElementById("kpi-val-2");
+            const kpi3 = document.getElementById("kpi-val-3");
+            const kpi4 = document.getElementById("kpi-val-4");
+            const kpi5 = document.getElementById("kpi-val-5");
+            const kpi6 = document.getElementById("kpi-val-6");
+            const kpi7 = document.getElementById("kpi-val-7");
+            const kpi8 = document.getElementById("kpi-val-8");
+            const kpi9 = document.getElementById("kpi-val-9");
+            const kpi10 = document.getElementById("kpi-val-10");
+
+            if (kpi1) kpi1.innerText = STATE.chats.length;
+            if (kpi2) kpi2.innerText = STATE.system_settings.SLA_RESPONSE_MINUTES + " mnt";
+            if (kpi3) kpi3.innerText = k.fcrRate + "%";
+            if (kpi4) kpi4.innerText = k.educationCount + " kali";
+            if (kpi5) kpi5.innerText = k.complaints;
+            if (kpi6) kpi6.innerText = repeatPatients + " pasien";
+            if (kpi7) kpi7.innerText = k.commQuality + " / 10";
+            if (kpi8) kpi8.innerText = k.trustIndex + "%";
+            if (kpi9) kpi9.innerText = k.satisfaction + "%";
+            if (kpi10) kpi10.innerText = STATE.master_pasien.length + " jiwa";
         }
 
         function simulateExport(format) {
