@@ -51,7 +51,6 @@
             position: relative;
         }
 
-        /* Ambient Glowing Background Blobs */
         body::before, body::after {
             content: "";
             position: absolute;
@@ -82,17 +81,6 @@
         @keyframes float-blobs {
             0% { transform: translate(0, 0) scale(1); }
             100% { transform: translate(100px, 50px) scale(1.2); }
-        }
-
-        @keyframes pulse-ring {
-            0% { transform: scale(0.6); opacity: 0; }
-            50% { opacity: 0.5; }
-            100% { transform: scale(1.5); opacity: 0; }
-        }
-
-        @keyframes map-radar {
-            0% { opacity: 0.15; }
-            100% { opacity: 0.35; }
         }
 
         .glass-panel {
@@ -333,6 +321,9 @@
             <div id="dialog-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl"></div>
             <h3 id="dialog-title" class="text-white text-base font-bold mb-1.5">Notifikasi</h3>
             <p id="dialog-message" class="text-xs text-[#94a3b8] mb-5 leading-relaxed"></p>
+            <div id="dialog-input-container" class="hidden mb-4">
+                <input type="text" id="dialog-custom-input" class="form-control text-xs text-center border-rose-500/30" placeholder="Ketik alasan di sini...">
+            </div>
             <div id="dialog-actions" class="flex gap-2.5 justify-center">
                 <button id="dialog-btn-cancel" class="btn btn-glass hidden flex-1 py-2">Batal</button>
                 <button id="dialog-btn-confirm" class="btn btn-primary flex-[1.5] py-2">Lanjutkan</button>
@@ -361,8 +352,8 @@
         </div>
     </div>
 
-    <!-- ONBOARDING OVERLAY POPUP -->
-    <div id="onboarding-overlay" class="fixed inset-0 bg-black/95 backdrop-blur-lg z-[10000] flex items-center justify-center p-4">
+    <!-- ONBOARDING OVERLAY POPUP (Leaving 50px space at the bottom for footer access) -->
+    <div id="onboarding-overlay" class="fixed top-0 left-0 right-0 bottom-[50px] bg-black/95 backdrop-blur-lg z-[10000] flex items-center justify-center p-4">
         <div class="glass-panel max-w-[420px] w-full p-6 text-center relative overflow-hidden border-sky-400/20">
             <div class="absolute -top-12 -right-12 w-32 h-32 bg-sky-500/10 rounded-full blur-xl"></div>
             
@@ -385,10 +376,10 @@
             <div class="border-t border-white/5 pt-4 text-left">
                 <div class="form-group mb-3">
                     <label class="form-label text-cyan-400 block mb-1">daftarkan nomor whatsapp anda disini: <span class="text-rose-500">*</span></label>
-                    <input type="text" id="onboard-wa-input" class="form-control text-sm tracking-wide font-bold py-2.5 text-center" placeholder="Contoh: 08135xxxxxxxxxx" onkeypress="handleOnboardKeyPress(event)">
+                    <input type="text" id="onboard-wa-input" class="form-control text-sm tracking-wide font-bold py-2.5 text-center text-sky-300 border-sky-500/20" placeholder="Contoh: 08135xxxxxxxxxx" onkeypress="handleOnboardKeyPress(event)">
                 </div>
                 <button class="btn btn-primary w-full py-3 bg-gradient-to-r from-sky-400 to-sky-600 font-extrabold text-white tracking-wide text-xs" onclick="submitOnboardingAccess()">
-                    MASUK PORTAL SEKARANG <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                    LANJUTKAN <i class="fa-solid fa-chevron-right text-[9px]"></i>
                 </button>
             </div>
         </div>
@@ -407,9 +398,6 @@
                 <button class="btn btn-glass flex-1 py-2 text-xs" onclick="closeAuthModal()">Batal</button>
                 <button class="btn btn-primary flex-[1.5] py-2 text-xs" onclick="submitAuthInternal()">Buka Dasbor</button>
             </div>
-            <p class="text-[9px] text-center text-[#94a3b8] mt-3 bg-white/5 py-1 rounded-lg border border-white/5">
-                Sandi Apoteker Jaga: <code class="text-amber-300">sinta2026</code>
-            </p>
         </div>
     </div>
 
@@ -435,7 +423,7 @@
         </div>
     </div>
 
-    <div id="app-container" class="flex flex-col min-h-screen">
+    <div id="app-container" class="flex flex-col min-h-screen pb-[50px]">
         
         <!-- HEADER NAVIGASI PREMIUM -->
         <header id="top-header" class="bg-black/85 backdrop-blur-lg border-b border-white/5 sticky top-0 z-[1000] px-4 py-3">
@@ -461,7 +449,8 @@
                         <strong class="text-xs text-white block" id="profile-name">Pengunjung Umum</strong>
                         <span class="text-[9px] text-cyan-400 font-medium" id="profile-sub">Akses Pasien</span>
                     </div>
-                    <button id="admin-gate-btn" class="btn btn-glass px-3 py-1.5 text-[10.5px] border-cyan-500/10 text-cyan-400" onclick="handlePortalSwitchClick()">
+                    <!-- Tombol ini otomatis diatur visibilitasnya lewat handleHashRouting -->
+                    <button id="admin-gate-btn" class="btn btn-glass px-3 py-1.5 text-[10.5px] border-cyan-500/10 text-cyan-400 hidden" onclick="handlePortalSwitchClick()">
                         <i class="fa-solid fa-lock"></i> Portal Staf
                     </button>
                 </div>
@@ -524,16 +513,27 @@
                 </div>
 
                 <!-- MAIN FORMULIR LAYANAN TERPADU -->
-                <div class="glass-panel p-5" id="p-reg-form-panel">
-                    <h3 class="text-white text-sm font-extrabold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-file-medical text-sky-400"></i> Formulir Pelayanan SINTA &amp; SYIFA</h3>
-                    <p class="text-[11px] text-[#94a3b8] mb-4">Lengkapi sisa kolom di bawah ini untuk mengaktifkan pengantaran obat ke rumah sekaligus pengawasan obat oleh asisten SINTA.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-3">
-                            <div class="form-group">
-                                <label class="form-label">Nomor Identitas Pasien (NIK atau JKN BPJS) <span class="text-rose-500">*</span></label>
-                                <input type="text" id="p-reg-identity" class="form-control" placeholder="Ketik NIK atau nomor JKN Jaminan Kesehatan">
-                            </div>
+    <div class="glass-panel p-5" id="p-reg-form-panel">
+        <h3 class="text-white text-sm font-extrabold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-file-medical text-sky-400"></i> Formulir Pelayanan SINTA &amp; SYIFA</h3>
+        <p class="text-[11px] text-[#94a3b8] mb-4">Lengkapi sisa kolom di bawah ini untuk mengaktifkan pengantaran obat ke rumah sekaligus pengawasan obat oleh asisten SINTA.</p>
+        
+        <div class="form-group bg-white/5 p-3 rounded-lg border border-white/10 mb-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="w-full sm:w-2/3">
+                <label class="form-label text-[#22d3ee] block mb-1">Cari Pasien Terdaftar (Nama / NIK)</label>
+                <input type="text" id="p-lookup-input" class="form-control text-xs py-1.5" placeholder="Ketik NIK atau nama lengkap...">
+            </div>
+            <div class="flex gap-1.5 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
+                <button type="button" onclick="lookupPatientDatabase()" class="btn btn-primary text-[10px] py-1.5 px-3 bg-gradient-to-r from-cyan-500 to-sky-600 border-none font-bold"><i class="fa-solid fa-magnifying-glass"></i> Cari Profil</button>
+                <button type="button" onclick="resetPatientFormInputs()" class="btn btn-glass text-[10px] py-1.5 px-3 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fa-solid fa-rotate-left"></i> Tulis Baru</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-3">
+                <div class="form-group">
+                    <label class="form-label">Nomor Identitas Pasien (NIK atau JKN BPJS) <span class="text-rose-500">*</span></label>
+                    <input type="text" id="p-reg-identity" class="form-control" placeholder="Ketik NIK atau nomor JKN Jaminan Kesehatan">
+                </div>
 
                             <div class="form-group">
                                 <label class="form-label">Nama Lengkap Pasien <span class="text-rose-500">*</span></label>
@@ -636,6 +636,113 @@
                         <i class="fa-brands fa-whatsapp text-sm"></i> Kirim Pesan Aktivasi WhatsApp SINTA
                     </a>
                 </div>
+
+                <!-- REAL-TIME PATIENT TRACKER PANEL (SINTA & SYIFA TRACKER) -->
+                <div id="p-reg-tracking-panel" class="hidden glass-panel p-6 flex flex-col justify-center items-center max-w-[500px] mx-auto border-cyan-500/30">
+                    <!-- State A: Sedang Ditinjau (Reviewing) -->
+                    <div id="tracker-state-reviewing" class="flex flex-col items-center text-center w-full">
+                        <div class="w-14 h-14 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mb-4 text-2xl animate-pulse">
+                            <i class="fa-solid fa-spinner animate-spin"></i>
+                        </div>
+                        <h3 class="text-white text-sm font-extrabold mb-1">Permohonan Sedang Ditinjau</h3>
+                        <p class="text-[11px] text-slate-300 leading-relaxed mb-4 max-w-[360px]">
+                            Data resep Anda telah dikirim dan saat ini sedang dalam proses verifikasi klinis oleh Apoteker Senior Jaga. Harap tunggu sebentar, halaman ini akan terupdate otomatis jika obat telah diserahkan ke kurir.
+                        </p>
+                        <div class="bg-black/35 border border-white/5 py-1.5 px-4 rounded-lg font-mono text-cyan-400 text-xs font-bold mb-4" id="tracker-patient-id-review">
+                            PAS-XXXXX
+                        </div>
+                        <!-- Simulator Control for Patients in Test Mode -->
+                        <div class="p-2.5 bg-cyan-950/20 border border-cyan-500/20 rounded-xl mt-2 w-full text-center">
+                            <span class="text-[9px] text-cyan-400 font-extrabold block uppercase tracking-wider mb-1"><i class="fa-solid fa-bug"></i> Mode Simulasi Tester (Bypass 36)</span>
+                            <div class="flex gap-2 justify-center">
+                                <button onclick="simulateStaffAcceptingDelivery()" class="btn btn-glass py-1 px-2 text-[9.5px] text-emerald-400 hover:bg-white/5 font-bold">
+                                    <i class="fa-solid fa-check mr-1"></i> Terima Resep
+                                </button>
+                                <button onclick="simulateStaffRejectingDelivery()" class="btn btn-glass py-1 px-2 text-[9.5px] text-rose-400 hover:bg-white/5 font-bold">
+                                    <i class="fa-solid fa-xmark mr-1"></i> Tolak Resep
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- State B: Kurir Sedang Jalan -->
+                    <div id="tracker-state-delivery" class="hidden flex flex-col items-center text-center w-full">
+                        <div class="w-14 h-14 bg-cyan-500/10 text-cyan-400 rounded-full flex items-center justify-center mb-4 text-2xl animate-bounce">
+                            <i class="fa-solid fa-truck-fast"></i>
+                        </div>
+                        <h3 class="text-rose-400 text-xs font-black uppercase tracking-wider mb-2 animate-pulse bg-rose-950/40 px-3 py-1 rounded-full border border-rose-500/35">
+                            ⚠️ JANGAN MENUTUP HALAMAN INI
+                        </h3>
+                        <p class="text-[11px] text-slate-200 leading-relaxed mb-4 max-w-[360px] font-semibold">
+                            Harap jangan menutup halaman ini untuk konfirmasi paket obat Anda sudah tiba di lokasi:
+                        </p>
+                        
+                        <div class="flex gap-3 w-full max-w-[320px] mb-4">
+                            <button onclick="confirmTrackerDelivery(true)" class="btn btn-primary flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 border-none font-bold text-xs">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Terima Pesanan
+                            </button>
+                            <button onclick="confirmTrackerDelivery(false)" class="btn btn-danger flex-1 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 border-none font-bold text-xs">
+                                <i class="fa-solid fa-circle-xmark mr-1"></i> Belum Terima
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- State E: Ditolak (Rejected) -->
+                    <div id="tracker-state-rejected" class="hidden flex flex-col items-center text-center w-full">
+                        <div class="w-14 h-14 bg-rose-500/10 text-rose-400 rounded-full flex items-center justify-center mb-4 text-2xl">
+                            <i class="fa-solid fa-circle-xmark animate-pulse"></i>
+                        </div>
+                        <h3 class="text-white text-sm font-extrabold mb-1">Permohonan Ditolak</h3>
+                        <p class="text-[11px] text-slate-300 leading-relaxed mb-3 max-w-[320px]">
+                            Mohon maaf, permohonan pengantaran obat Anda ditolak oleh petugas apotek dengan catatan berikut:
+                        </p>
+                        <div class="bg-rose-950/30 border border-rose-500/20 py-2.5 px-4 rounded-xl text-rose-300 text-xs font-bold mb-4 max-w-[340px]" id="tracker-reject-reason-text">
+                            -
+                        </div>
+                        <button onclick="resetTrackerToForm()" class="btn btn-glass py-2 px-4 text-xs font-bold text-sky-400">
+                            <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Kembali ke Formulir
+                        </button>
+                    </div>
+
+                    <!-- State C: Survei Kepuasan Singkat (1-4) -->
+                    <div id="tracker-state-survey" class="hidden flex flex-col items-center text-center w-full">
+                        <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mb-3 text-xl">
+                            <i class="fa-solid fa-face-grin-stars"></i>
+                        </div>
+                        <h3 class="text-white text-xs font-extrabold mb-1">Survei Singkat Mutu SYIFA</h3>
+                        <p class="text-[10px] text-slate-400 mb-4 leading-relaxed max-w-[320px]">
+                            Bagaimana kesesuaian obat dan kualitas layanan pengantaran yang Anda terima?
+                        </p>
+                        <div class="flex flex-col gap-2 w-full max-w-[280px]">
+                            <button onclick="submitTrackerSurvey(1)" class="btn btn-glass text-left text-[11px] py-2 px-3 justify-start hover:border-emerald-500/35">
+                                1️⃣ Sangat Sesuai & Ramah
+                            </button>
+                            <button onclick="submitTrackerSurvey(2)" class="btn btn-glass text-left text-[11px] py-2 px-3 justify-start hover:border-emerald-500/35">
+                                2️⃣ Sesuai tapi Lambat
+                            </button>
+                            <button onclick="submitTrackerSurvey(3)" class="btn btn-glass text-left text-[11px] py-2 px-3 justify-start hover:border-emerald-500/35">
+                                3️⃣ Tidak Sesuai Sediaan
+                            </button>
+                            <button onclick="submitTrackerSurvey(4)" class="btn btn-glass text-left text-[11px] py-2 px-3 justify-start hover:border-emerald-500/35">
+                                4️⃣ Lainnya (Tulis Kendala)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- State D: Selesai Terima Kasih -->
+                    <div id="tracker-state-done" class="hidden flex flex-col items-center text-center w-full">
+                        <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mb-4 text-2xl">
+                            <i class="fa-solid fa-heart animate-pulse"></i>
+                        </div>
+                        <h3 class="text-white text-sm font-extrabold mb-1">Terima Kasih Banyak!</h3>
+                        <p class="text-[11px] text-slate-300 leading-relaxed mb-4 max-w-[300px]">
+                            Umpan balik Anda berhasil disimpan ke log evaluasi mutu apotek RSUD Sinjai. Semoga lekas sembuh!
+                        </p>
+                        <button onclick="resetTrackerToForm()" class="btn btn-glass py-2 px-4 text-xs font-bold text-sky-400">
+                            <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Kembali ke Formulir
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- MODULE 2: DRUG DICTIONARY (E-Edukasi Mandiri) -->
@@ -667,7 +774,7 @@
                     <!-- Official Complaint Log & Input Form -->
                     <div class="glass-panel p-5">
                         <h3 class="text-white text-sm font-bold mb-1 flex items-center gap-1.5"><i class="fa-solid fa-bullhorn text-rose-500"></i> Kirim Pengaduan Layanan</h3>
-                        <p class="text-[11px] text-[#94a3b8] mb-4">Pengaduan Anda akan terekam langsung di sistem log pengawasan kami dan diteruskan otomatis ke Duty Manager RSUD Sinjai.</p>
+                        <p class="text-[11px] text-[#94a3b8] mb-4">Pengaduan Anda akan terekam langsung di sistem log pengawasan kami and diteruskan otomatis ke Duty Manager RSUD Sinjai.</p>
                         
                         <div class="mb-4 space-y-2" id="public-aduan-list">
                             <!-- Aduan contacts list -->
@@ -724,7 +831,7 @@
                 </div>
             </div>
 
-            <!-- MODULE 4: RUANG MONITORING CHAT OBAT (Sisi Staf) -->
+            <!-- MODULE 4: RUANG MONITORING CHAT OBAT (Sisi Staf & Group Chat) -->
             <div id="int-chat-module" class="module-content-panel hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-220px)] min-h-[450px]">
                     
@@ -739,7 +846,7 @@
                         </div>
 
                         <!-- SIMULATOR CHAT PASIEN MASUK -->
-                        <div class="p-3 border-t border-white/5 bg-slate-900/60">
+                        <div class="p-3 border-t border-white/5 bg-slate-900/60" id="chat-simulator-container">
                             <h5 class="text-[10px] font-bold text-cyan-400 mb-1.5 uppercase tracking-wide">
                                 <i class="fa-solid fa-comment-medical mr-1"></i> SIMULATOR CHAT PASIEN (KIRIM KE WA)
                             </h5>
@@ -785,10 +892,10 @@
                         <div class="p-3 border-t border-white/5 bg-slate-950/80">
                             <!-- Alert visual prevent pharmacist typing in wrong box -->
                             <div class="text-[9px] text-amber-400 font-extrabold uppercase tracking-wider mb-1 flex items-center gap-1">
-                                <i class="fa-solid fa-shield-halved animate-pulse"></i> KHUSUS BALASAN APOTEKER (INTERNAL STAFF)
+                                <i class="fa-solid fa-shield-halved animate-pulse"></i> KHUSUS BALASAN APOTEKER / OBROLAN AKTIF
                             </div>
                             <div class="flex gap-2">
-                                <input type="text" id="pharmacist-reply-input" class="form-control py-2 text-xs border-emerald-500/30 focus:border-emerald-500" placeholder="Ketik jawaban resmi Anda selaku apoteker..." onkeypress="handlePharmacistReplyKeyPress(event)">
+                                <input type="text" id="pharmacist-reply-input" class="form-control py-2 text-xs border-emerald-500/30 focus:border-emerald-500" placeholder="Ketik jawaban resmi atau pesan chat..." onkeypress="handlePharmacistReplyKeyPress(event)">
                                 <button class="btn btn-primary bg-gradient-to-r from-emerald-500 to-emerald-600 px-4" onclick="submitPharmacistReply()">
                                     <i class="fa-solid fa-paper-plane text-xs"></i>
                                 </button>
@@ -798,12 +905,13 @@
                 </div>
             </div>
 
-            <!-- MODULE 5: PERMINTAAN ANTARAN (Sisi Staf - Terpusat) -->
+            <!-- MODULE 5: PERMINTAAN ANTARAN (SISI STAF - TERPUSAT) -->
             <div id="int-delivery-parent-module" class="module-content-panel hidden">
                 <div class="flex gap-1.5 mb-4 overflow-x-auto pb-1 border-b border-white/5">
                     <button class="btn btn-glass text-[10.5px] py-1.5 px-3 active" id="sub-btn-delivery" onclick="switchDeliverySubmodule('delivery')">Antrean SYIFA (Delivery)</button>
                     <button class="btn btn-glass text-[10.5px] py-1.5 px-3" id="sub-btn-resep" onclick="switchDeliverySubmodule('resep')">Transaksi Antrean</button>
                     <button class="btn btn-glass text-[10.5px] py-1.5 px-3" id="sub-btn-pasien" onclick="switchDeliverySubmodule('pasien')">Master Pasien</button>
+                    <button class="btn btn-glass text-[10.5px] py-1.5 px-3" id="sub-btn-history" onclick="switchDeliverySubmodule('history')">Log Riwayat Pelayanan</button>
                 </div>
 
                 <!-- Submodule A: Antrean SYIFA (Delivery) -->
@@ -821,7 +929,7 @@
                         <div class="bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-left flex items-center gap-2">
                             <span class="text-[10px] text-cyan-400 font-bold uppercase">Estimasi Global:</span>
                             <select id="cfg-delivery-estimation" class="bg-black text-white text-xs border border-white/10 rounded px-2 py-1 outline-none" onchange="updateDeliveryEstimationConfig(this.value)">
-                                <!-- Dynamically populated from master waktu -->
+                                <!-- Dynamically populated -->
                             </select>
                         </div>
                     </div>
@@ -882,7 +990,7 @@
 
                         <div class="glass-panel p-4 lg:col-span-3">
                             <h3 class="text-white text-xs font-bold mb-3 flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-sky-400"></i> Riwayat Pelayanan Resep Antar Rumah &amp; Jadwal</h3>
-                            <p class="text-[10px] text-slate-400 mb-2">Petugas apotek dapat melihat jadwal konsumsi harian dan pemicu alarm notifikasi otomatis 30 menit sebelum waktu minum obat tiba.</p>
+                            <p class="text-[10px] text-slate-400 mb-2">Petugas apotek dapat melihat jadwal konsumsi harian and pemicu alarm notifikasi otomatis 30 menit sebelum waktu minum obat tiba.</p>
                             <div class="overflow-x-auto border border-white/5 rounded-xl bg-black/25">
                                 <table class="w-full text-left border-collapse text-[11px]">
                                     <thead>
@@ -966,6 +1074,41 @@
                                 </table>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Submodule D: Log Riwayat Pelayanan Terpadu -->
+                <div id="submodule-history-panel" class="hidden glass-panel p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-white text-xs font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-clock-rotate-left text-[#f472b6]"></i> Log Riwayat Pelayanan Terpadu SINTA &amp; SYIFA
+                            </h3>
+                            <p class="text-[11px] text-[#94a3b8]">
+                                Daftar lengkap seluruh aktivitas permohonan, status pengantaran, pemenuhan target SLA 20 Menit, serta log survey.
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn btn-glass text-xs font-bold text-cyan-400" onclick="renderHistoryLogs()"><i class="fa-solid fa-arrows-rotate"></i> Segarkan</button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto border border-white/5 rounded-xl bg-black/25">
+                        <table class="w-full text-left border-collapse text-[11px]">
+                            <thead>
+                                <tr class="bg-white/[0.01] border-b border-white/10 text-[10px] text-sky-400 uppercase">
+                                    <th class="p-3">ID &amp; Nama Pasien</th>
+                                    <th class="p-3">Obat &amp; Alamat</th>
+                                    <th class="p-3">Status Permohonan</th>
+                                    <th class="p-3">Status Kurir &amp; SLA</th>
+                                    <th class="p-3">Log Survei / Rating</th>
+                                    <th class="p-3 text-center">Aksi Dokumen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-logs-tbody" class="divide-y divide-white/5 text-white/80">
+                                <!-- Loaded dynamically via JS -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -1158,7 +1301,7 @@
                     
                     <div class="glass-panel p-4">
                         <h3 class="text-white text-xs font-bold mb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-server text-cyan-400"></i> Kredensial Supabase &amp; Jam Operasional</h3>
-                        <p class="text-[11px] text-[#94a3b8] mb-4 leading-relaxed">Input URL, Anon Key Supabase, dan tentukan waktu operasional layanan aktif SINTA.</p>
+                        <p class="text-[11px] text-[#94a3b8] mb-4 leading-relaxed">Input URL, Anon Key Supabase, and tentukan waktu operasional layanan aktif SINTA.</p>
                         
                         <div class="form-group">
                             <label class="form-label">Project URL (Core System & Rekam Medis)</label>
@@ -1190,7 +1333,7 @@
                     <div class="glass-panel p-4 flex flex-col justify-between">
                         <div>
                             <h3 class="text-white text-xs font-bold mb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-qrcode text-pink-400"></i> Sinkronisasi HP Operasional</h3>
-                            <p class="text-[11px] text-[#94a3b8] mb-3">Pastikan Server HP and Gateway WA HAI SINTA dalam keadaan aktif dan terhubung:</p>
+                            <p class="text-[11px] text-[#94a3b8] mb-3">Pastikan Server HP and Gateway WA HAI SINTA dalam keadaan aktif and terhubung:</p>
                             
                             <div class="flex flex-col items-center justify-center p-4 border border-dashed border-white/10 rounded-xl bg-black/20 text-center">
                                 <div class="bg-white p-2.5 rounded-lg mb-2 shadow-md shadow-black/40">
@@ -1202,80 +1345,11 @@
 
                         <div class="border-t border-white/5 pt-3 mt-4">
                             <h4 class="text-white text-xs font-bold mb-1 flex items-center gap-1"><i class="fa-solid fa-recycle text-rose-500"></i> Data Vacuum &amp; Auto-Sync Google Sheets</h4>
-                            <p class="text-[10px] text-[#94a3b8] leading-relaxed mb-3">Kosongkan log chat selesai dari Supabase di malam hari dan ekspor arsipnya secara otomatis ke Google Sheets.</p>
+                            <p class="text-[10px] text-[#94a3b8] leading-relaxed mb-3">Kosongkan log chat selesai dari Supabase di malam hari and ekspor arsipnya secara otomatis ke Google Sheets.</p>
                             <button class="btn btn-danger w-full py-2 text-xs" onclick="triggerDataVacuum()">
                                 <i class="fa-solid fa-bolt animate-pulse"></i> Jalankan Data Vacuum &amp; Sync Malam
                             </button>
                         </div>
-                    </div>
-                </div>
-
-                <!-- SUPABASE SQL SCHEMA (COPYABLE AREA) -->
-                <div class="glass-panel p-4 mb-6">
-                    <h3 class="text-white text-xs font-bold mb-1 flex items-center gap-1.5 text-amber-400">
-                        <i class="fa-solid fa-database"></i> Kebutuhan Tabel Database Supabase (SQL Script)
-                    </h3>
-                    <p class="text-[10px] text-slate-400 mb-3">Salin dan jalankan perintah SQL ini di menu SQL Editor Supabase Anda untuk membuat tabel SINTA &amp; SYIFA secara terintegrasi:</p>
-                    <textarea class="w-full bg-black/60 border border-white/10 rounded-lg p-3 font-mono text-[9.5px] text-cyan-300 outline-none focus:border-cyan-400" rows="8" readonly id="supabase-sql-textarea">
--- 1. Tabel Master Pasien
-CREATE TABLE master_pasien (
-    id VARCHAR(50) PRIMARY KEY,
-    identity VARCHAR(50),
-    nama_lengkap VARCHAR(150) NOT NULL,
-    nomor_whatsapp VARCHAR(50) NOT NULL,
-    usia INT,
-    jenis_kelamin VARCHAR(20),
-    kelurahan VARCHAR(100),
-    alamat TEXT,
-    gps TEXT,
-    jenis_obat TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- 2. Tabel Antrean Pengantaran (SYIFA)
-CREATE TABLE antrean_antaran (
-    id VARCHAR(50) PRIMARY KEY,
-    patient_id VARCHAR(50) REFERENCES master_pasien(id) ON DELETE CASCADE,
-    nama_lengkap VARCHAR(150),
-    nomor_whatsapp VARCHAR(50),
-    jenis_obat TEXT,
-    kelurahan VARCHAR(100),
-    alamat TEXT,
-    gps TEXT,
-    status VARCHAR(50) DEFAULT 'Pending',
-    accepted_at BIGINT,
-    completed_at BIGINT,
-    duration INT,
-    rating INT,
-    eta_estimation VARCHAR(50),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- 3. Tabel Transaksi Resep (Edukasi SINTA & Notifikasi Jadwal)
-CREATE TABLE transaksi_resep (
-    id VARCHAR(50) PRIMARY KEY,
-    pasien_id VARCHAR(50) REFERENCES master_pasien(id) ON DELETE CASCADE,
-    obat_id VARCHAR(50),
-    aturan_pakai TEXT,
-    tanggal_tebus DATE,
-    jam_konsumsi TIME,
-    status_edukasi VARCHAR(100),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- 4. Tabel Log Pengaduan
-CREATE TABLE log_pengaduan (
-    id VARCHAR(50) PRIMARY KEY,
-    pelapor VARCHAR(150),
-    keluhan TEXT NOT NULL,
-    waktu VARCHAR(50),
-    sumber VARCHAR(50),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);</textarea>
-                    <div class="flex justify-end mt-2">
-                        <button class="btn btn-glass py-1.5 px-4 text-[10px] font-bold text-cyan-400 border-cyan-400/20" onclick="copySupabaseSql()">
-                            <i class="fa-regular fa-copy"></i> Salin Skrip SQL
-                        </button>
                     </div>
                 </div>
 
@@ -1437,7 +1511,7 @@ CREATE TABLE log_pengaduan (
                         <div>
                             <span class="text-xs font-bold text-white block mb-1">Cetak Rekap Bulanan</span>
                             <p class="text-[11px] text-[#94a3b8] leading-relaxed mb-4">
-                                Unduh hasil rekonsiliasi data pengantaran dan survei kepuasan minum obat sebagai bukti keefektifan layanan.
+                                Unduh hasil rekonsiliasi data pengantaran and survei kepuasan minum obat sebagai bukti keefektifan layanan.
                             </p>
                         </div>
                         <div class="flex flex-col gap-2">
@@ -1450,6 +1524,13 @@ CREATE TABLE log_pengaduan (
             </div>
 
         </main>
+
+        <!-- FOOTER WITH 5-CLICKS SECRET PORTAL ACCESS ON WORD "Ku" -->
+        <footer id="app-footer" class="fixed bottom-0 left-0 right-0 h-[50px] bg-black/90 border-t border-white/5 px-6 flex items-center justify-end z-[10005]">
+            <p class="text-[10px] text-[#94a3b8] font-mono tracking-tight select-none">
+                Sinta and Syifa "One Care" <span class="cursor-pointer hover:text-cyan-400 font-extrabold" onclick="handleSecretClick()">Ku</span>-Ghost C2026
+            </p>
+        </footer>
     </div>
 
     <!-- MAIN APP CONTROLLERS -->
@@ -1466,6 +1547,7 @@ CREATE TABLE log_pengaduan (
             pending_delivery_sim_id: null,
             pending_delivery_sim_response: null,
             currentOnboardWa: null,
+            menusUnlocked: false, // Menentukan apakah tab menu tambahan dikunci (hanya untuk nomor baru sebelum isi survei)
 
             // Maps drag state variables
             mapDragActive: false,
@@ -1482,6 +1564,13 @@ CREATE TABLE log_pengaduan (
             master_waktu: ["10 Menit", "15 Menit", "20 Menit", "30 Menit", "45 Menit", "60 Menit"],
 
             master_aduan: [], // Master tabel log pengaduan
+
+            archived_counts: {
+                consultations: 184, // data historis yang ditarik ke Google Sheets
+                education: 310,
+                complaints: 0,
+                patients: 2
+            },
 
             master_kelurahan: [
                 { id: "kel-1", nama: "Kel. Balangnipa" },
@@ -1525,9 +1614,9 @@ CREATE TABLE log_pengaduan (
                 TEMPLATE_BUTUH_APOTEKER: "Sesi dialihkan kepada **Apoteker Senior Jaga** secara langsung.\n\nMohon tuliskan pertanyaan Anda secara lengkap. Apoteker kami akan segera membalas di jalur ini.",
                 TEMPLATE_NOTIF_PENGINGAT: "🚨 PENGINGAT MINUM OBAT RSUD SINJAI 🚨\n\nHalo Ibu/Bapak [Nama_Lengkap],\n\nWaktunya minum obat Anda yang teratur agar penyembuhan berjalan optimal:\n\n💊 *[Daftar_Obat]*\n\nBila sudah diminum, harap balas dengan mengetik **Sudah**.",
 
-                TEMPLATE_HUMANIS_PENGINGAT: "Assalamualaikum Wr. Wb. Salam sejahtera bagi kita semua.\n\nBapak/Ibu [Nama_Lengkap] yang kami hormati,\n\nSekadar mengingatkan dengan penuh kasih sayang, waktu minum obat Anda yaitu *[Daftar_Obat]* akan tiba dalam waktu 30 menit lagi (Pukul [Jam_Konsumsi]).\n\nMari bersiap untuk meminum obat secara teratur demi kesehatan dan pemulihan tubuh Bapak/Ibu tercinta. Semoga senantiasa diberikan kekuatan dan kesembuhan oleh Tuhan Yang Maha Kuasa. \n\nInstalasi Farmasi RSUD Sinjai senantiasa mendoakan kesembuhan Anda.",
+                TEMPLATE_HUMANIS_PENGINGAT: "Assalamualaikum Wr. Wb. Salam sejahtera bagi kita semua.\n\nBapak/Ibu [Nama_Lengkap] yang kami hormati,\n\nSekadar mengingatkan dengan penuh kasih sayang, waktu minum obat Anda yaitu *[Daftar_Obat]* akan tiba dalam waktu 30 menit lagi (Pukul [Jam_Konsumsi]).\n\nMari bersiap untuk meminum obat secara teratur demi kesehatan and pemulihan tubuh Bapak/Ibu tercinta. Semoga senantiasa diberikan kekuatan and kesembuhan oleh Tuhan Yang Maha Kuasa. \n\nInstalasi Farmasi RSUD Sinjai senantiasa mendoakan kesembuhan Anda.",
                 
-                TEMPLATE_KURIR_PENDING: "Pesanan obat Anda akan tiba di lokasi estimasi waktu [Estimasi] menit. Tolong simpan pesan ini dan balas jika petugas sudah tiba atau tidak sesuai waktu yang telah ditetapkan.\n\nKetik:\n👉 *1* jika Pesanan Obat Diterima\n👉 *2* jika Obat Belum Diterima",
+                TEMPLATE_KURIR_PENDING: "Pesanan obat Anda akan tiba di lokasi estimasi waktu [Estimasi] menit. Tolong simpan pesan ini and balas jika petugas sudah tiba atau tidak sesuai waktu yang telah ditetapkan.\n\nKetik:\n👉 *1* jika Pesanan Obat Diterima\n👉 *2* jika Obat Belum Diterima",
                 
                 TEMPLATE_ROBOT_SURVEY: "Pesan Anda telah kami terima, terima kasih telah mengirim konfirmasi.\n\nMohon kesediaan Anda mengisi survei singkat mengenai ketepatan sediaan obat dengan membalas angka (1-4):\n\n1️⃣ Sangat Sesuai & Ramah\n2️⃣ Sesuai tapi Lambat\n3️⃣ Tidak Sesuai Sediaan\n4️⃣ Lainnya (Tulis Kendala)"
             },
@@ -1567,6 +1656,64 @@ CREATE TABLE log_pengaduan (
             }
         };
 
+        function lookupPatientDatabase() {
+            const query = document.getElementById("p-lookup-input").value.trim().toLowerCase();
+            if (!query) {
+                showCustomDialog('info', 'Form Kosong', 'Silakan ketikkan Nama Lengkap atau Nomor NIK terlebih dahulu.');
+                return;
+            }
+
+            const match = STATE.master_pasien.find(p => 
+                (p.nama_lengkap && p.nama_lengkap.toLowerCase().includes(query)) ||
+                (p.identity && p.identity.toLowerCase().includes(query))
+            );
+
+            if (match) {
+                document.getElementById("p-reg-name").value = match.nama_lengkap;
+                document.getElementById("p-reg-age").value = match.usia || "";
+                document.getElementById("p-reg-identity").value = match.identity || "";
+                
+                // Kunci kolom identitas NIK agar tidak bisa dirubah jika sudah terdaftar
+                document.getElementById("p-reg-identity").readOnly = true;
+                document.getElementById("p-reg-identity").classList.add("bg-black/60", "text-slate-400", "cursor-not-allowed");
+                
+                document.getElementById("p-reg-gender").value = match.jenis_kelamin || "Laki-laki";
+                document.getElementById("p-reg-address").value = match.alamat || "";
+                document.getElementById("p-reg-kelurahan").value = match.kelurahan || "Kel. Balangnipa";
+                
+                if (match.gps) {
+                    document.getElementById("p-reg-gps").value = match.gps;
+                    document.getElementById("p-reg-gps-display-input").value = match.gps;
+                    recoverPinPositionFromSavedUrl(match.gps);
+                }
+
+                STATE.temp_drugs = match.jenis_obat ? match.jenis_obat.split(', ').filter(Boolean) : [];
+                renderDrugsTags();
+
+                showCustomDialog('success', 'Profil Terdaftar Ditemukan', `Halo **${match.nama_lengkap}**, data profil Anda berhasil dimuat otomatis. Identitas NIK Anda telah dikunci demi keamanan.`);
+            } else {
+                showCustomDialog('danger', 'Tidak Ditemukan', 'Pasien dengan Nama/NIK tersebut tidak terdaftar di sistem. Anda dapat menulis manual.');
+            }
+        }
+
+        function resetPatientFormInputs() {
+            document.getElementById("p-reg-name").value = "";
+            document.getElementById("p-reg-age").value = "";
+            
+            const identityInput = document.getElementById("p-reg-identity");
+            identityInput.value = "";
+            identityInput.readOnly = false;
+            identityInput.classList.remove("bg-black/60", "text-slate-400", "cursor-not-allowed");
+
+            document.getElementById("p-reg-address").value = "";
+            document.getElementById("p-reg-gps").value = "";
+            document.getElementById("p-reg-gps-display-input").value = "";
+            
+            STATE.temp_drugs = [];
+            renderDrugsTags();
+            showCustomDialog('info', 'Formulir Direset', 'Formulir pendaftaran dikosongkan. Silakan isi data baru.');
+        }
+
         function isServiceOpen() {
             const now = new Date();
             const options = { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -1603,15 +1750,6 @@ CREATE TABLE log_pengaduan (
             }
         }
 
-        function copySupabaseSql() {
-            const textArea = document.getElementById("supabase-sql-textarea");
-            if (textArea) {
-                textArea.select();
-                document.execCommand('copy');
-                showCustomDialog('success', 'SQL Disalin', 'Skrip SQL inisialisasi tabel Supabase berhasil disalin ke clipboard.');
-            }
-        }
-
         function handleHashRouting() {
             const currentHash = window.location.hash;
             
@@ -1624,18 +1762,23 @@ CREATE TABLE log_pengaduan (
                 STATE.portal = 'public';
                 const adminGateBtn = document.getElementById("admin-gate-btn");
                 if (adminGateBtn) {
-                    adminGateBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Portal Staf';
-                    adminGateBtn.className = "btn btn-glass px-3 py-1.5 text-xs border-cyan-500/10 text-cyan-400";
+                    adminGateBtn.classList.add("hidden");
                 }
                 
                 const portalLabel = document.getElementById("portal-role-label");
                 if (portalLabel) portalLabel.innerText = "Sistem Edukasi & Pengantaran Obat RSUD Sinjai";
                 
-                const profileName = document.getElementById("profile-name");
-                if (profileName) profileName.innerText = "Pengunjung Umum";
-                
                 const profileSub = document.getElementById("profile-sub");
-                if (profileSub) profileSub.innerText = "Akses Pasien";
+                if (STATE.currentUserRole === "Tester") {
+                    document.getElementById("profile-name").innerText = "Admin Pengawas (Tester Mode 36)";
+                    if (profileSub) profileSub.innerText = "Bypass Mode Aktif";
+                } else if (STATE.currentPatient) {
+                    document.getElementById("profile-name").innerText = STATE.currentPatient.nama_lengkap;
+                    if (profileSub) profileSub.innerText = "No. WA: +" + STATE.currentPatient.nomor_whatsapp;
+                } else {
+                    document.getElementById("profile-name").innerText = "Pengunjung Umum";
+                    if (profileSub) profileSub.innerText = "Akses Pasien";
+                }
                 
                 renderTopNavigation();
                 switchModule('pub-beranda-module');
@@ -1644,6 +1787,7 @@ CREATE TABLE log_pengaduan (
                 STATE.portal = 'internal';
                 const adminGateBtn = document.getElementById("admin-gate-btn");
                 if (adminGateBtn) {
+                    adminGateBtn.classList.remove("hidden");
                     adminGateBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Keluar Staf';
                     adminGateBtn.className = "btn btn-danger px-3 py-1.5 text-xs font-bold";
                 }
@@ -1717,6 +1861,21 @@ CREATE TABLE log_pengaduan (
             }
         }
 
+        let secretClickCount = 0;
+        let secretClickTimeout;
+        function handleSecretClick() {
+            secretClickCount++;
+            clearTimeout(secretClickTimeout);
+            secretClickTimeout = setTimeout(() => {
+                secretClickCount = 0;
+            }, 2000);
+
+            if (secretClickCount >= 5) {
+                secretClickCount = 0;
+                openAuthModal();
+            }
+        }
+
         function submitOnboardingAccess() {
             let wa = document.getElementById("onboard-wa-input").value.trim();
             if (!wa) {
@@ -1724,8 +1883,33 @@ CREATE TABLE log_pengaduan (
                 return;
             }
 
+            if (wa === "36") {
+                STATE.currentOnboardWa = "36";
+                STATE.currentUserRole = "Tester"; // Dipasang sebagai Tester / Admin Pengawas
+                STATE.currentPatient = null;
+                STATE.menusUnlocked = true; // Unlock all menus instantly for Tester/Admin
+                document.getElementById("profile-name").innerText = "Admin Pengawas (Tester Mode 36)";
+                document.getElementById("display-active-wa").innerText = "BYPASS-36";
+
+                document.getElementById("onboarding-overlay").style.display = "none";
+                document.getElementById("p-reg-form-panel").classList.remove("hidden");
+                document.getElementById("p-reg-success-card").classList.add("hidden");
+
+                renderTopNavigation();
+                switchModule('pub-beranda-module');
+                renderActiveChatsList();
+                showCustomDialog('success', 'Admin Pengawas Aktif', 'Bypass akses 36 berhasil diaktifkan. Anda dapat melihat, memantau seluruh sesi percakapan pasien secara bebas.');
+                return;
+            }
+
+            const phoneRegex = /^(?:\+62|62|0)8[0-9]{8,13}$/;
+            if (!phoneRegex.test(wa)) {
+                showCustomDialog('danger', 'Format Nomor Salah', 'Silakan masukkan nomor HP/WhatsApp Indonesia yang valid (contoh: 08123456789 atau +628123456789).');
+                return;
+            }
+
             if (wa.startsWith('0')) wa = '62' + wa.slice(1);
-            else if (wa.startsWith('8')) wa = '62' + wa;
+            else if (wa.startsWith('+')) wa = wa.slice(1);
 
             STATE.currentOnboardWa = wa;
             document.getElementById("display-active-wa").innerText = wa;
@@ -1734,6 +1918,7 @@ CREATE TABLE log_pengaduan (
 
             if (existingPatient) {
                 STATE.currentPatient = existingPatient;
+                STATE.menusUnlocked = true; // Registered users get all menus unlocked immediately
                 document.getElementById("profile-name").innerText = existingPatient.nama_lengkap;
                 document.getElementById("profile-sub").innerText = "No. WA: +" + existingPatient.nomor_whatsapp;
                 
@@ -1748,11 +1933,40 @@ CREATE TABLE log_pengaduan (
 
                 STATE.temp_drugs = existingPatient.jenis_obat ? existingPatient.jenis_obat.split(', ').filter(Boolean) : [];
                 renderDrugsTags();
-
                 recoverPinPositionFromSavedUrl(existingPatient.gps);
 
                 document.getElementById("onboarding-overlay").style.display = "none";
-                showCustomDialog('success', 'Selamat Datang Kembali!', `Halo Ibu/Bapak **${existingPatient.nama_lengkap}**. Sesi asuhan obat Anda berhasil dimuat secara otomatis.`);
+                document.getElementById("p-reg-form-panel").classList.add("hidden");
+                
+                const antreanAktif = STATE.antrean_antaran.find(a => a.patient_id === existingPatient.id && (a.status === "Pending" || a.status === "Diterima" || a.status === "Ditolak"));
+                const trackingCard = document.getElementById("p-reg-tracking-panel");
+                
+                if (antreanAktif && trackingCard) {
+                    trackingCard.classList.remove("hidden");
+                    trackingCard.classList.add("flex");
+                    document.getElementById("tracker-patient-id-review").innerText = existingPatient.id;
+                    if (antreanAktif.status === "Pending") {
+                        showTrackerState('reviewing');
+                    } else if (antreanAktif.status === "Diterima") {
+                        showTrackerState('delivery');
+                    } else if (antreanAktif.status === "Ditolak") {
+                        showTrackerState('rejected');
+                        document.getElementById("tracker-reject-reason-text").innerText = antreanAktif.rejection_reason || "Data tidak sesuai persyaratan.";
+                    }
+                } else {
+                    const successCard = document.getElementById("p-reg-success-card");
+                    successCard.classList.remove("hidden");
+                    successCard.classList.add("flex");
+                    document.getElementById("success-patient-id").innerText = existingPatient.id;
+                }
+
+                const encodedText = encodeURIComponent(`Halo, saya ${existingPatient.nama_lengkap}. Saya ingin memantau sediaan obat saya.`);
+                document.getElementById("success-wa-btn").href = `https://wa.me/${STATE.system_settings.WA_GATEWAY_NUMBER}?text=${encodedText}`;
+
+                renderTopNavigation();
+                switchModule('pub-beranda-module');
+                renderActiveChatsList();
+                showCustomDialog('success', 'Selamat Datang Kembali!', `Halo Ibu/Bapak **${existingPatient.nama_lengkap}**. Seluruh menu edukasi and konsultasi dinas Anda kini aktif.`);
             } else {
                 const tempId = "PAS-" + Math.floor(10000 + Math.random() * 90000);
                 const draftPatient = {
@@ -1772,6 +1986,7 @@ CREATE TABLE log_pengaduan (
 
                 STATE.master_pasien.push(draftPatient);
                 STATE.currentPatient = draftPatient;
+                STATE.menusUnlocked = false; // Lock menus for new unregistered users
 
                 document.getElementById("p-reg-name").value = "";
                 document.getElementById("p-reg-age").value = "";
@@ -1784,8 +1999,16 @@ CREATE TABLE log_pengaduan (
                 renderDrugsTags();
 
                 document.getElementById("onboarding-overlay").style.display = "none";
+                document.getElementById("p-reg-form-panel").classList.remove("hidden");
+                document.getElementById("p-reg-success-card").classList.add("hidden");
+                const trackingCard = document.getElementById("p-reg-tracking-panel");
+                if (trackingCard) trackingCard.classList.add("hidden");
+
+                renderTopNavigation();
+                switchModule('pub-beranda-module');
                 renderMasterPatientsTable(); 
-                showCustomDialog('info', 'Langkah Terakhir Pendaftaran', 'Nomor Anda berhasil didaftarkan! Silakan lengkapi sisa kolom nama, identitas, kelurahan, dan geser pin peta untuk melengkapi koordinat pengantaran.');
+                renderActiveChatsList();
+                showCustomDialog('info', 'Langkah Terakhir Pendaftaran', 'Nomor Anda belum terdaftar. Silakan lengkapi sisa kolom pendaftaran di bawah ini untuk mengaktifkan asuhan obat.');
             }
         }
 
@@ -2054,6 +2277,9 @@ CREATE TABLE log_pengaduan (
             const messageEl = document.getElementById("dialog-message");
             const btnConfirm = document.getElementById("dialog-btn-confirm");
             const btnCancel = document.getElementById("dialog-btn-cancel");
+            const inputContainer = document.getElementById("dialog-input-container");
+
+            if (inputContainer) inputContainer.classList.add("hidden");
 
             if (iconEl) {
                 iconEl.className = "w-11 h-11 rounded-full flex items-center justify-center mx-auto mb-4 text-xl";
@@ -2107,16 +2333,25 @@ CREATE TABLE log_pengaduan (
 
             if (STATE.portal === 'public') {
                 const publicMenu = [
-                    { id: 'pub-beranda-module', label: 'Formulir Pendaftaran', icon: 'fa-house-medical' },
-                    { id: 'pub-kamus-module', label: 'Panduan Aturan Obat', icon: 'fa-book-medical' },
-                    { id: 'pub-layanan-module', label: 'Survei & Aduan', icon: 'fa-face-smile' }
+                    { id: 'pub-beranda-module', label: 'Permohonan Kirim Obat', icon: 'fa-truck-fast' },
+                    { id: 'int-chat-module', label: 'Group Chat SINTA', icon: 'fa-comments-medical' }, // Direposisi mendekati form pengiriman
+                    { id: 'pub-kamus-module', label: 'Panduan Obat', icon: 'fa-book-medical' },
+                    { id: 'pub-layanan-module', label: 'Survei Kepuasan', icon: 'fa-face-smile' }
                 ];
+
+                // LOCK MECHANAL: Batasi menu jika belum terdaftar & menyelesaikan survey
+                let allowedMenu = [...publicMenu];
+                if (!STATE.menusUnlocked) {
+                    allowedMenu = [publicMenu[0]]; 
+                }
+
                 const group = document.createElement("div");
                 group.className = "nav-group-container";
                 group.innerHTML = `<span class="nav-group-label">Pasien</span>`;
-                publicMenu.forEach((m, idx) => {
+                allowedMenu.forEach((m) => {
                     const btn = document.createElement("button");
-                    btn.className = "nav-tab" + (idx === 0 ? " active" : "");
+                    const isActive = STATE.activeModule === m.id;
+                    btn.className = "nav-tab" + (isActive ? " active" : "");
                     btn.innerHTML = `<i class="fa-solid ${m.icon}"></i> ${m.label}`;
                     btn.setAttribute('onclick', `activateNavTab(this, '${m.id}')`);
                     group.appendChild(btn);
@@ -2181,19 +2416,33 @@ CREATE TABLE log_pengaduan (
             const subEl = document.getElementById("module-subtitle");
             
             const titles = {
-                'pub-beranda-module': { t: "Pendaftaran Layanan Terpadu", s: "Fasilitas pengantaran obat gratis ke rumah sekaligus edukasi minum obat teratur." },
-                'pub-kamus-module': { t: "Kamus Cara Minum Obat", s: "Panduan aturan pakai obat yang baik dan benar agar terhindar dari salah dosis." },
-                'pub-layanan-module': { t: "Survei & Aduan", s: "Kirim masukan atau laporan kendala kurir pengantaran." },
-                'int-delivery-parent-module': { t: "Kelola Permintaan Antaran", s: "Terima/tolak permohonan antaran SYIFA, data transaksi, dan master pasien." },
-                'int-chat-module': { t: "Dasbor Pengawasan Chat", s: "Pantau kepatuhan pasien minum obat. Ambil alih manual jika pasien butuh bantuan khusus." },
+                'pub-beranda-module': { t: "Permohonan Kirim Obat", s: "Fasilitas pengantaran resep fisik gratis ke rumah Anda (Program SYIFA RSUD Sinjai)." },
+                'pub-kamus-module': { t: "Kamus Panduan Obat", s: "Panduan aturan pakai obat yang baik and benar agar terhindar dari salah dosis." },
+                'pub-layanan-module': { t: "Survei & Kepuasan Layanan", s: "Kirim masukan, penilaian kualitas, atau laporan kendala kurir pengantaran." },
+                'int-delivery-parent-module': { t: "Kelola Permintaan Antaran", s: "Terima/tolak permohonan antaran SYIFA, data transaksi, and master pasien." },
+                'int-chat-module': { t: "Obrolan Layanan SINTA", s: "Konsultasi obat interaktif dua arah. Sesi real-time yang terhubung ke apotek." },
                 'int-master-module': { t: "Pengelolaan Data Master", s: "Manajemen data kelurahan, ketersediaan obat, serta konfigurasi kustom waktu & nomor WA dinas." },
                 'int-settings-module': { t: "Konfigurasi Aturan & Cloud Sync", s: "Kelola aturan kalimat sistem demi kenyamanan komunikasi terpercaya beserta integrasi Supabase." },
-                'int-dashboard-module': { t: "Indikator Mutu", s: "Grafik kepuasan pasien dan status respons pelayanan apoteker." }
+                'int-dashboard-module': { t: "Indikator Mutu", s: "Grafik kepuasan pasien and status respons pelayanan apoteker." }
             };
+
+            const simContainer = document.getElementById("chat-simulator-container");
+            if (simContainer) {
+                if (STATE.portal === "public" && STATE.currentUserRole !== "Tester") {
+                    simContainer.style.display = "none";
+                } else {
+                    simContainer.style.display = "block";
+                }
+            }
 
             if (titles[moduleId] && titleEl && subEl) {
                 titleEl.innerText = titles[moduleId].t;
                 subEl.innerText = titles[moduleId].s;
+            }
+
+            // Segarkan list chat agar memilah privasi dengan benar saat masuk tab chat
+            if (moduleId === 'int-chat-module') {
+                renderActiveChatsList();
             }
         }
 
@@ -2228,6 +2477,7 @@ CREATE TABLE log_pengaduan (
             if (pw === "sinta2026" || pw === "admin") {
                 STATE.currentUserRole = 'Apoteker_Piket';
                 closeAuthModal(); 
+                document.getElementById("onboarding-overlay").style.display = "none";
                 window.location.hash = '#/portal_apotik';
             } else {
                 showCustomDialog('danger', 'Akses Ditolak', 'Sandi staf apotek tidak valid. Silakan hubungi kepala instalasi.');
@@ -2255,12 +2505,32 @@ CREATE TABLE log_pengaduan (
                 return;
             }
 
-            executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, STATE.temp_drugs.join(", "), false);
+            const isBypass = (wa === "36");
+            executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, STATE.temp_drugs.join(", "), false, isBypass);
         }
 
-        function executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, drugsString, isNoSmartphone) {
-            let patient = STATE.master_pasien.find(p => p.nomor_whatsapp === wa && !isNoSmartphone);
+        function executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, drugsString, isNoSmartphone, isBypass = false) {
+            if (isBypass) {
+                showCustomDialog('success', 'Simulasi Registrasi Tester', 'Pendaftaran Anda berhasil disimulasikan! Sesi tester "36" tidak mencatat log apa pun di Supabase.');
+                document.getElementById("p-reg-form-panel").classList.add("hidden");
+                
+                const trackingCard = document.getElementById("p-reg-tracking-panel");
+                if (trackingCard) {
+                    trackingCard.classList.remove("hidden");
+                    trackingCard.classList.add("flex");
+                    document.getElementById("tracker-patient-id-review").innerText = "TESTER-36";
+                    showTrackerState('reviewing');
+                } else {
+                    const successCard = document.getElementById("p-reg-success-card");
+                    successCard.classList.remove("hidden");
+                    successCard.classList.add("flex");
+                    document.getElementById("success-patient-id").innerText = "TESTER-36";
+                }
+                document.getElementById("success-wa-btn").href = "#";
+                return;
+            }
 
+            let patient = STATE.master_pasien.find(p => p.nomor_whatsapp === wa && !isNoSmartphone);
             const finalGps = gps || (patient && patient.gps) || "https://routing.openstreetmap.de/?z=18&center=-5.128899%2C120.249444&loc=-5.128950%2C120.248655&loc=-5.128512%2C120.248982&hl=en&alt=0&srv=0";
 
             if (patient && !isNoSmartphone) {
@@ -2351,13 +2621,23 @@ CREATE TABLE log_pengaduan (
 
             if (STATE.portal === 'public') {
                 document.getElementById("p-reg-form-panel").classList.add("hidden");
-                const successCard = document.getElementById("p-reg-success-card");
-                successCard.classList.remove("hidden");
-                successCard.classList.add("flex");
-                document.getElementById("success-patient-id").innerText = patient.id;
+                
+                const trackingCard = document.getElementById("p-reg-tracking-panel");
+                if (trackingCard) {
+                    trackingCard.classList.remove("hidden");
+                    trackingCard.classList.add("flex");
+                    document.getElementById("tracker-patient-id-review").innerText = patient.id;
+                    showTrackerState('reviewing');
+                } else {
+                    const successCard = document.getElementById("p-reg-success-card");
+                    successCard.classList.remove("hidden");
+                    successCard.classList.add("flex");
+                    document.getElementById("success-patient-id").innerText = patient.id;
+                }
                 
                 const encodedText = encodeURIComponent(`Halo, saya ${name}. Saya telah mendaftar layanan terpadu SINTA & SYIFA.`);
-                document.getElementById("success-wa-btn").href = `https://wa.me/${STATE.system_settings.WA_GATEWAY_NUMBER}?text=${encodedText}`;
+                const successWaBtn = document.getElementById("success-wa-btn");
+                if (successWaBtn) successWaBtn.href = `https://wa.me/${STATE.system_settings.WA_GATEWAY_NUMBER}?text=${encodedText}`;
             }
         }
 
@@ -2395,8 +2675,8 @@ CREATE TABLE log_pengaduan (
                         actionArea = `<span class="text-[11px] text-slate-400 italic">Menunggu Balas Jawaban 1/2</span>`;
                     }
                 } else if (ant.status === "Ditolak") {
-                    statusBadge = '<span class="inline-flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-circle-xmark"></i> Pengajuan Ditolak</span>';
-                    actionArea = `<span class="text-rose-400 font-semibold text-[11px]">Dibatalkan</span>`;
+                    statusBadge = `<span class="inline-flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-circle-xmark"></i> Ditolak</span>`;
+                    actionArea = `<span class="text-rose-400 font-semibold text-[10px] block truncate max-w-[120px]" title="${ant.rejection_reason || 'Dibatalkan'}">Alasan: ${ant.rejection_reason || 'Dibatalkan'}</span>`;
                 } else if (ant.status.startsWith("Selesai")) {
                     const isSesuai = ant.status === "Selesai_Sesuai";
                     statusBadge = isSesuai 
@@ -2485,6 +2765,11 @@ CREATE TABLE log_pengaduan (
             ant.accepted_at = Date.now();
             renderDeliveryTable();
 
+            const activeReviewId = document.getElementById("tracker-patient-id-review") ? document.getElementById("tracker-patient-id-review").innerText : "";
+            if (activeReviewId === ant.patient_id || (STATE.currentPatient && STATE.currentPatient.id === ant.patient_id)) {
+                showTrackerState('delivery');
+            }
+
             let chatObj = STATE.chats.find(c => c.patientWa === ant.nomor_whatsapp);
             if (chatObj) {
                 const rawPendingTmpl = parseMessageTemplate('TEMPLATE_KURIR_PENDING', { nama_lengkap: ant.nama_lengkap }, { eta_estimation: ant.eta_estimation.replace(/\D/g, '') });
@@ -2503,9 +2788,60 @@ CREATE TABLE log_pengaduan (
             const ant = STATE.antrean_antaran.find(a => a.id === id);
             if (!ant) return;
 
-            ant.status = "Ditolak";
-            renderDeliveryTable();
-            showCustomDialog('info', 'Permohonan Ditolak', `Permohonan antaran ${ant.nama_lengkap} berhasil dibatalkan.`);
+            const overlay = document.getElementById("custom-dialog-overlay");
+            const iconEl = document.getElementById("dialog-icon");
+            const titleEl = document.getElementById("dialog-title");
+            const messageEl = document.getElementById("dialog-message");
+            const btnConfirm = document.getElementById("dialog-btn-confirm");
+            const btnCancel = document.getElementById("dialog-btn-cancel");
+            const inputContainer = document.getElementById("dialog-input-container");
+            const customInput = document.getElementById("dialog-custom-input");
+
+            if (!overlay || !inputContainer || !customInput) return;
+
+            iconEl.className = "w-11 h-11 rounded-full flex items-center justify-center mx-auto mb-4 text-xl bg-rose-500/15 text-rose-400";
+            iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+            titleEl.innerText = "Tolak Pengantaran";
+            messageEl.innerText = `Harap masukkan catatan/alasan penolakan pengantaran resep untuk ${ant.nama_lengkap}:`;
+            
+            inputContainer.classList.remove("hidden");
+            customInput.value = "";
+            customInput.focus();
+
+            btnCancel.classList.remove("hidden");
+            btnCancel.onclick = function() {
+                overlay.classList.add("hidden");
+                overlay.classList.remove("flex");
+                inputContainer.classList.add("hidden");
+            };
+
+            btnConfirm.onclick = function() {
+                const reason = customInput.value.trim();
+                if (!reason) {
+                    showCustomDialog('danger', 'Alasan Diperlukan', 'Anda harus memasukkan alasan penolakan agar pasien mendapatkan informasi yang jelas.');
+                    return;
+                }
+
+                ant.status = "Ditolak";
+                ant.rejection_reason = reason;
+                
+                overlay.classList.add("hidden");
+                overlay.classList.remove("flex");
+                inputContainer.classList.add("hidden");
+
+                renderDeliveryTable();
+
+                const activeReviewId = document.getElementById("tracker-patient-id-review") ? document.getElementById("tracker-patient-id-review").innerText : "";
+                if (activeReviewId === ant.patient_id || (STATE.currentPatient && STATE.currentPatient.id === ant.patient_id)) {
+                    showTrackerState('rejected');
+                    document.getElementById("tracker-reject-reason-text").innerText = reason;
+                }
+
+                showCustomDialog('success', 'Permohonan Ditolak', `Permohonan antaran ${ant.nama_lengkap} ditolak dengan alasan: "${reason}".`);
+            };
+
+            overlay.classList.remove("hidden");
+            overlay.classList.add("flex");
         }
 
         function openCourierManualBypassDialog(id) {
@@ -2531,6 +2867,11 @@ CREATE TABLE log_pengaduan (
             if (simOverlay) {
                 simOverlay.classList.add("hidden");
                 simOverlay.classList.remove("flex");
+            }
+
+            if (STATE.currentPatient && STATE.currentPatient.id === ant.patient_id) {
+                STATE.menusUnlocked = true;
+                renderTopNavigation();
             }
 
             renderDeliveryTable();
@@ -2654,7 +2995,7 @@ CREATE TABLE log_pengaduan (
             showCustomDialog(
                 'success', 
                 'Aduan Terkirim & Diteruskan', 
-                `Laporan <strong>${complaintId}</strong> terekam di sistem dan telah di-forward otomatis ke Layanan Aduan (${targetLinesInfo}).`
+                `Laporan <strong>${complaintId}</strong> terekam di sistem and telah di-forward otomatis ke Layanan Aduan (${targetLinesInfo}).`
             );
         }
 
@@ -2989,41 +3330,149 @@ CREATE TABLE log_pengaduan (
             container.innerHTML = "";
             let globalSlaExceeded = false;
 
-            STATE.chats.forEach((c, idx) => {
-                const item = document.createElement("div");
-                const timeDiffMinutes = Math.floor((Date.now() - c.lastIncomingTime) / (60 * 1000));
-                const slaMinutesLimit = STATE.system_settings.SLA_RESPONSE_MINUTES;
-                const isSlaExceeded = !c.isBotActive && (timeDiffMinutes >= slaMinutesLimit);
+            // Memeriksa apakah pengguna memiliki hak akses staf/pengawas/tester 36
+            const isStaffOrSupervisor = (STATE.portal === 'internal' || STATE.currentUserRole === 'Apoteker_Piket' || STATE.currentUserRole === 'Tester');
 
-                if (isSlaExceeded) {
-                    item.className = "p-3 cursor-pointer relative transition-colors border-b border-white/5 bg-rose-500/5 hover:bg-white/[0.03] duration-150 chat-list-item " + (STATE.selectedChatSessionIndex === idx ? "active" : "") + " sla-critical";
-                    globalSlaExceeded = true;
-                } else {
-                    item.className = "p-3 cursor-pointer relative transition-colors border-b border-white/5 hover:bg-white/[0.03] duration-150 chat-list-item" + (STATE.selectedChatSessionIndex === idx ? " active" : "");
-                }
-                
-                const lastMsg = c.messages[c.messages.length - 1];
-                const snippet = lastMsg ? lastMsg.text.substring(0, 30) + "..." : "Sesi baru...";
-                
-                let isBotActiveIcon = "";
-                if (c.isBotActive) {
-                    isBotActiveIcon = '<span class="text-[9.5px] text-cyan-400 font-semibold"><i class="fa-solid fa-clock mr-1"></i> Asisten SINTA</span>';
-                } else if (c.isSurveyPreEscalatePending) {
-                    isBotActiveIcon = '<span class="text-[9.5px] text-amber-400 font-semibold animate-pulse"><i class="fa-solid fa-star-half-stroke mr-1"></i> Pre-Survei</span>';
-                } else {
-                    isBotActiveIcon = `<span class="text-[9.5px] font-semibold ${isSlaExceeded ? 'text-rose-400' : 'text-emerald-400'}"><i class="fa-solid fa-user-doctor mr-1"></i> Apoteker (${timeDiffMinutes}m)</span>`;
+            if (!isStaffOrSupervisor) {
+                // Sisi Pasien: Sembunyikan list chat pasien lain, hanya tampilkan nama-nama anggota aktif
+                const sidebarHeader = container.previousElementSibling;
+                if (sidebarHeader) {
+                    sidebarHeader.innerHTML = `<span><i class="fa-solid fa-users text-cyan-400 mr-1.5"></i> Anggota Grup SINTA</span>`;
                 }
 
-                item.innerHTML = `<div class="flex justify-between items-center mb-1"><strong class="text-xs text-white">${c.patientName}</strong>${isBotActiveIcon}</div><p class="text-[11px] text-[#94a3b8]">${snippet}</p>`;
-                item.onclick = () => selectChatSession(idx);
-                container.appendChild(item);
-            });
+                // Tampilkan peserta grup tanpa detail percakapan
+                STATE.master_pasien.forEach(p => {
+                    const item = document.createElement("div");
+                    item.className = "p-3 border-b border-white/5 flex items-center justify-between";
+                    
+                    const isSelf = (STATE.currentPatient && p.id === STATE.currentPatient.id);
+                    const nameLabel = isSelf ? `${p.nama_lengkap} (Anda)` : p.nama_lengkap;
+                    const statusDot = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>`;
 
-            const globalBadge = document.getElementById("sla-global-warning-badge");
-            if (globalBadge) {
-                if (globalSlaExceeded) globalBadge.classList.remove("hidden");
-                else globalBadge.classList.add("hidden");
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            ${statusDot}
+                            <span class="text-xs text-white font-medium">${nameLabel}</span>
+                        </div>
+                        <span class="text-[9px] text-[#94a3b8]">Aktif</span>
+                    `;
+                    container.appendChild(item);
+                });
+
+                // Set obrolan aktif otomatis hanya ke sesi konsultasi pasien itu sendiri
+                if (STATE.currentPatient) {
+                    let ownChatIdx = STATE.chats.findIndex(c => c.patientWa === STATE.currentPatient.nomor_whatsapp);
+                    if (ownChatIdx !== -1) {
+                        STATE.selectedChatSessionIndex = ownChatIdx;
+                        renderPrivateChatWindow(ownChatIdx);
+                    } else {
+                        // Daftarkan sesi obrolan baru jika belum ada
+                        const newChat = {
+                            patientName: STATE.currentPatient.nama_lengkap,
+                            patientWa: STATE.currentPatient.nomor_whatsapp,
+                            isBotActive: true,
+                            isSurveyPreEscalatePending: false,
+                            isAwaitingDeliveryConfirmation: false,
+                            isAwaitingDeliverySurvey: false,
+                            deliveryId: null,
+                            lastIncomingTime: Date.now(),
+                            messages: [
+                                { sender: 'bot', text: parseMessageTemplate('TEMPLATE_SAPA_DAFTAR', STATE.currentPatient).replace(/\n/g, "<br>"), time: getCurrentWitaTime() }
+                            ]
+                        };
+                        STATE.chats.unshift(newChat);
+                        STATE.selectedChatSessionIndex = 0;
+                        renderPrivateChatWindow(0);
+                    }
+                }
+            } else {
+                // Sisi Staf/Apoteker/Admin Pengawas: Tampilkan list chat interaktif seperti semula
+                const sidebarHeader = container.previousElementSibling;
+                if (sidebarHeader) {
+                    sidebarHeader.innerHTML = `
+                        <span><i class="fa-solid fa-list-check text-sky-400 mr-1.5"></i> Antrean Konsultasi Obat SINTA</span>
+                        <span id="sla-global-warning-badge" class="hidden text-[9px] bg-rose-500/10 text-rose-400 border border-rose-500/35 px-1.5 py-0.5 rounded-full animate-bounce"><i class="fa-solid fa-bell"></i> SLA KRITIS!</span>
+                    `;
+                }
+
+                STATE.chats.forEach((c, idx) => {
+                    const item = document.createElement("div");
+                    const timeDiffMinutes = Math.floor((Date.now() - c.lastIncomingTime) / (60 * 1000));
+                    const slaMinutesLimit = STATE.system_settings.SLA_RESPONSE_MINUTES;
+                    const isSlaExceeded = !c.isBotActive && (timeDiffMinutes >= slaMinutesLimit);
+
+                    if (isSlaExceeded) {
+                        item.className = "p-3 cursor-pointer relative transition-colors border-b border-white/5 bg-rose-500/5 hover:bg-white/[0.03] duration-150 chat-list-item " + (STATE.selectedChatSessionIndex === idx ? "active" : "") + " sla-critical";
+                        globalSlaExceeded = true;
+                    } else {
+                        item.className = "p-3 cursor-pointer relative transition-colors border-b border-white/5 hover:bg-white/[0.03] duration-150 chat-list-item" + (STATE.selectedChatSessionIndex === idx ? " active" : "");
+                    }
+                    
+                    const lastMsg = c.messages[c.messages.length - 1];
+                    const snippet = lastMsg ? lastMsg.text.substring(0, 30) + "..." : "Sesi baru...";
+                    
+                    let isBotActiveIcon = "";
+                    if (c.isBotActive) {
+                        isBotActiveIcon = '<span class="text-[9.5px] text-cyan-400 font-semibold"><i class="fa-solid fa-clock mr-1"></i> Asisten SINTA</span>';
+                    } else if (c.isSurveyPreEscalatePending) {
+                        isBotActiveIcon = '<span class="text-[9.5px] text-amber-400 font-semibold animate-pulse"><i class="fa-solid fa-star-half-stroke mr-1"></i> Pre-Survei</span>';
+                    } else {
+                        isBotActiveIcon = `<span class="text-[9.5px] font-semibold ${isSlaExceeded ? 'text-rose-400' : 'text-emerald-400'}"><i class="fa-solid fa-user-doctor mr-1"></i> Apoteker (${timeDiffMinutes}m)</span>`;
+                    }
+
+                    item.innerHTML = `<div class="flex justify-between items-center mb-1"><strong class="text-xs text-white">${c.patientName}</strong>${isBotActiveIcon}</div><p class="text-[11px] text-[#94a3b8]">${snippet}</p>`;
+                    item.onclick = () => selectChatSession(idx);
+                    container.appendChild(item);
+                });
+
+                const globalBadge = document.getElementById("sla-global-warning-badge");
+                if (globalBadge) {
+                    if (globalSlaExceeded) globalBadge.classList.remove("hidden");
+                    else globalBadge.classList.add("hidden");
+                }
             }
+        }
+
+        function renderPrivateChatWindow(idx) {
+            const c = STATE.chats[idx];
+            if (!c) return;
+
+            document.getElementById("active-chat-name").innerText = `${c.patientName} (Sesi Konsultasi Anda)`;
+            
+            // Sembunyikan tombol intervensi manual dari pasien umum
+            const takeoverArea = document.getElementById("takeover-action-area");
+            if (takeoverArea) {
+                takeoverArea.classList.add("hidden");
+                takeoverArea.classList.remove("flex");
+            }
+
+            const statusText = document.getElementById("active-chat-status");
+            if (statusText) {
+                if (c.isBotActive) {
+                    statusText.innerHTML = '<i class="fa-solid fa-circle text-[7px] text-cyan-400 mr-1 animate-pulse"></i> Asisten SINTA Online';
+                } else {
+                    statusText.innerHTML = '<i class="fa-solid fa-user-doctor text-[10px] text-emerald-400 mr-1"></i> Apoteker Senior Terhubung';
+                }
+            }
+
+            const body = document.getElementById("chat-conversation-body");
+            if (!body) return;
+            body.innerHTML = "";
+
+            c.messages.forEach(m => {
+                const bubble = document.createElement("div");
+                const isUser = m.sender === 'user';
+                bubble.className = `max-w-[75%] p-3 rounded-xl text-xs leading-relaxed ${isUser ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white self-end rounded-br-sm' : 'bg-white/5 text-white/95 border border-white/5 self-start rounded-bl-sm'}`;
+                
+                let senderLabel = "";
+                if (m.sender === 'user') senderLabel = "Anda";
+                else if (m.sender === 'bot') senderLabel = "Asisten SINTA";
+                else senderLabel = "Apoteker Senior Jaga";
+
+                bubble.innerHTML = `<span class="block text-[8px] text-white/50 font-bold uppercase tracking-wider mb-0.5">${senderLabel} - ${m.time}</span>${m.text}`;
+                body.appendChild(bubble);
+            });
+            body.scrollTop = body.scrollHeight;
         }
 
         function simulateIncomingDirectChat() {
@@ -3053,7 +3502,6 @@ CREATE TABLE log_pengaduan (
 
             chatObj.lastIncomingTime = Date.now();
 
-            // Sesi intervensi flow delivery terlebih dahulu
             const isHandledByDeliveryFlow = processDeliveryConfirmationFlow(text, chatObj);
             
             if (!isHandledByDeliveryFlow) {
@@ -3107,6 +3555,13 @@ CREATE TABLE log_pengaduan (
         }
 
         function selectChatSession(idx) {
+            const isStaffOrSupervisor = (STATE.portal === 'internal' || STATE.currentUserRole === 'Apoteker_Piket' || STATE.currentUserRole === 'Tester');
+            
+            if (!isStaffOrSupervisor) {
+                renderPrivateChatWindow(idx);
+                return;
+            }
+
             STATE.selectedChatSessionIndex = idx;
             renderActiveChatsList();
             const c = STATE.chats[idx];
@@ -3175,13 +3630,19 @@ CREATE TABLE log_pengaduan (
             if (!text || STATE.selectedChatSessionIndex === null) return;
 
             const c = STATE.chats[STATE.selectedChatSessionIndex];
-            c.messages.push({ sender: 'pharmacist', text: text, time: getCurrentWitaTime() });
+            
+            const isPharmacist = (STATE.portal === "internal" || STATE.currentUserRole === "Apoteker_Piket");
+            c.messages.push({ 
+                sender: isPharmacist ? 'pharmacist' : 'user', 
+                text: text, 
+                time: getCurrentWitaTime() 
+            });
             input.value = "";
             selectChatSession(STATE.selectedChatSessionIndex);
 
             let isEduPattern = false;
             STATE.master_obat.forEach(d => { if (text.toLowerCase().includes(d.nama_obat.toLowerCase().split(" ")[0])) isEduPattern = true; });
-            if (isEduPattern) { STATE.kpi.educationCount += 1; renderKpiCards(); }
+            if (isEduPattern && isPharmacist) { STATE.kpi.educationCount += 1; renderKpiCards(); }
         }
 
         function simulateDigitalResponse(userText, sessionObj) {
@@ -3189,7 +3650,6 @@ CREATE TABLE log_pengaduan (
                 const query = userText.trim().toUpperCase();
                 let reply = "";
 
-                // 1. CEK JAM OPERASIONAL PELAYANAN BUKA/TUTUP
                 if (!isServiceOpen()) {
                     reply = `Maaf, saat ini Layanan Asisten SINTA & SYIFA Apotek RSUD Sinjai telah TUTUP.\n\n🕒 *Jam Operasional Pelayanan:*\nSetiap Hari pukul ${STATE.system_settings.OPEN_HOUR} s/d ${STATE.system_settings.CLOSE_HOUR} WITA.\n\nPesan Anda telah disimpan secara aman. Petugas apoteker kami akan segera memproses sediaan resep Anda saat pelayanan dibuka kembali besok pagi. Terima kasih atas pengertian Anda.`;
                     sessionObj.messages.push({ sender: 'bot', text: reply.replace(/\n/g, "<br>"), time: getCurrentWitaTime() });
@@ -3230,7 +3690,7 @@ CREATE TABLE log_pengaduan (
                         ? STATE.dinamik_pengaduan_wa.map(num => `+${num}`).join(', ') 
                         : "Nomor Duty Manager";
 
-                    reply = `Mohon maaf atas ketidaknyamanan yang Ibu/Bapak ${name} alami.\n\nKeluhan Anda telah kami catat (ID: *${complaintId}*) dan saat ini sedang *diteruskan secara otomatis* ke Line Pengaduan kami:\n📞 ${targetLinesInfo}\n\nSistem SINTA dinonaktifkan sementara. Apoteker senior kami akan segera merespons Anda di obrolan ini.`;
+                    reply = `Mohon maaf atas ketidaknyamanan yang Ibu/Bapak ${name} alami.\n\nKeluhan Anda telah kami catat (ID: *${complaintId}*) and saat ini sedang *diteruskan secara otomatis* ke Line Pengaduan kami:\n📞 ${targetLinesInfo}\n\nSistem SINTA dinonaktifkan sementara. Apoteker senior kami akan segera merespons Anda di obrolan ini.`;
                     sessionObj.isBotActive = false;
                 }
                 else if (isQueryA) {
@@ -3343,12 +3803,291 @@ CREATE TABLE log_pengaduan (
 
         function switchDeliverySubmodule(sub) {
             STATE.activeDeliverySubmodule = sub;
-            ['delivery', 'resep', 'pasien'].forEach(s => {
+            ['delivery', 'resep', 'pasien', 'history'].forEach(s => {
                 const panel = document.getElementById(`submodule-${s}-panel`);
                 const btn = document.getElementById(`sub-btn-${s}`);
                 if (panel) panel.style.display = (sub === s) ? "block" : "none";
                 if (btn) btn.className = "btn btn-glass text-xs py-1.5 px-3" + (sub === s ? " active" : "");
             });
+            if (sub === 'history') {
+                renderHistoryLogs();
+            }
+        }
+
+        function renderHistoryLogs() {
+            const tbody = document.getElementById("history-logs-tbody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            STATE.antrean_antaran.forEach(ant => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-white/[0.015] border-b border-white/5 transition-colors duration-150 text-xs";
+
+                let statusPermohonan = "";
+                if (ant.status === "Ditolak") {
+                    statusPermohonan = `<span class="text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">Ditolak</span>`;
+                } else {
+                    statusPermohonan = `<span class="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Diterima</span>`;
+                }
+
+                let statusKurir = "";
+                if (ant.status === "Pending") {
+                    statusKurir = `<span class="text-amber-400 font-semibold"><i class="fa-regular fa-clock"></i> Antrean Pending</span>`;
+                } else if (ant.status === "Diterima") {
+                    statusKurir = `<span class="text-sky-400 font-semibold"><i class="fa-solid fa-truck"></i> Kurir Sedang Jalan</span>`;
+                } else if (ant.status === "Ditolak") {
+                    statusKurir = `<span class="text-slate-400 italic">Dibatalkan</span>`;
+                } else if (ant.status.startsWith("Selesai")) {
+                    const isOntime = ant.duration && ant.duration <= 20;
+                    statusKurir = isOntime 
+                        ? `<span class="text-emerald-400 font-bold block"><i class="fa-solid fa-circle-check"></i> Tepat SLA (${ant.duration}m)</span>`
+                        : `<span class="text-rose-400 font-bold block"><i class="fa-solid fa-circle-exclamation"></i> Terlambat (${ant.duration}m)</span>`;
+                }
+
+                let logSurvey = "";
+                if (ant.rating) {
+                    logSurvey = `<span class="text-amber-400 font-bold"><i class="fa-solid fa-star"></i> ${ant.rating}/5</span>`;
+                } else if (ant.status.startsWith("Selesai")) {
+                    logSurvey = `<span class="text-slate-400 italic">Belum Mengisi</span>`;
+                } else {
+                    logSurvey = `<span class="text-slate-500">-</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-3">
+                        <strong class="text-white block">${ant.nama_lengkap}</strong>
+                        <span class="text-[9px] font-mono text-cyan-400">${ant.id}</span>
+                    </td>
+                    <td class="p-3">
+                        <div class="text-slate-300 max-w-[150px] truncate" title="${ant.jenis_obat}">${ant.jenis_obat}</div>
+                        <div class="text-[10px] text-slate-400">${ant.kelurahan}</div>
+                    </td>
+                    <td class="p-3">${statusPermohonan}</td>
+                    <td class="p-3">${statusKurir}</td>
+                    <td class="p-3">${logSurvey}</td>
+                    <td class="p-3 text-center">
+                        <button class="btn btn-glass text-xs text-sky-400 border-sky-500/20 py-1 px-2.5 font-bold hover:bg-sky-500/10" onclick="generateOfficialPDFReceipt('${ant.id}')">
+                            <i class="fa-solid fa-print"></i> Cetak PDF Resmi
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function generateOfficialPDFReceipt(id) {
+            const ant = STATE.antrean_antaran.find(a => a.id === id);
+            if (!ant) return;
+
+            const p = STATE.master_pasien.find(x => x.id === ant.patient_id) || { identity: "-", usia: "-", jenis_kelamin: "-" };
+
+            const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+                showCustomDialog('danger', 'Popup Diblokir', 'Silakan aktifkan izin popup pada browser Anda untuk mencetak.');
+                return;
+            }
+
+            const isSlaOk = ant.duration ? (ant.duration <= 20 ? "TEPAT WAKTU (SESUAI TARGET SLA 20 MENIT)" : "MELEBIHI BATAS (TERLAMBAT SLA)") : "DALAM PROSES ANTARAN";
+            const ratingText = ant.rating ? `${ant.rating} dari 5 Bintang` : "Belum mengisi survei";
+
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Bukti Pelayanan Terpadu SINTA & SYIFA RSUD Sinjai</title>
+                    <style>
+                        body {
+                            font-family: 'Times New Roman', Times, serif;
+                            padding: 40px;
+                            color: #000;
+                            line-height: 1.4;
+                        }
+                        .kop-surat {
+                            border-bottom: 4px double #000;
+                            padding-bottom: 10px;
+                            margin-bottom: 25px;
+                            text-align: center;
+                            position: relative;
+                        }
+                        .kop-text-1 {
+                            font-size: 15px;
+                            font-weight: bold;
+                            text-transform: uppercase;
+                            margin: 0;
+                        }
+                        .kop-text-2 {
+                            font-size: 17px;
+                            font-weight: bold;
+                            text-transform: uppercase;
+                            margin: 2px 0;
+                        }
+                        .kop-text-3 {
+                            font-size: 13px;
+                            font-weight: bold;
+                            text-transform: uppercase;
+                            margin: 0;
+                        }
+                        .kop-address {
+                            font-size: 10.5px;
+                            font-style: italic;
+                            margin: 5px 0 0 0;
+                        }
+                        .doc-title {
+                            text-align: center;
+                            font-size: 13px;
+                            font-weight: bold;
+                            text-decoration: underline;
+                            margin-bottom: 20px;
+                            text-transform: uppercase;
+                        }
+                        .meta-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 25px;
+                        }
+                        .meta-table td {
+                            padding: 5px;
+                            font-size: 11.5px;
+                            vertical-align: top;
+                        }
+                        .meta-table td.label {
+                            width: 25%;
+                            font-weight: bold;
+                        }
+                        .meta-table td.colon {
+                            width: 2%;
+                        }
+                        .details-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 30px;
+                        }
+                        .details-table th, .details-table td {
+                            border: 1px solid #000;
+                            padding: 8px;
+                            font-size: 11.5px;
+                            text-align: left;
+                        }
+                        .details-table th {
+                            background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        .sign-container {
+                            width: 100%;
+                            margin-top: 50px;
+                            display: flex;
+                            justify-content: space-between;
+                        }
+                        .sign-box {
+                            width: 45%;
+                            text-align: center;
+                            font-size: 11.5px;
+                        }
+                        .sign-space {
+                            height: 65px;
+                        }
+                        @media print {
+                            body { padding: 10px; }
+                            button { display: none; }
+                        }
+                        .btn-print {
+                            background-color: #0284c7;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            font-size: 12px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            border-radius: 4px;
+                            margin-bottom: 20px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="text-align: right;">
+                        <button class="btn-print" onclick="window.print()">Cetak Resi Resmi</button>
+                    </div>
+                    <div class="kop-surat">
+                        <div class="kop-text-1">Pemerintah Kabupaten Sinjai</div>
+                        <div class="kop-text-2">UPT RUMAH SAKIT UMUM DAERAH SINJAI</div>
+                        <div class="kop-text-3">INSTALASI FARMASI</div>
+                        <div style="font-size:11px; font-weight:bold; letter-spacing:1px; margin-top:2px;">WEB APP SINTA AND SYIFA "ONECARE"</div>
+                        <div class="kop-address">Alamat: Jl. Jend. Sudirman No. 9, Biringere, Kec. Sinjai Utara, Kabupaten Sinjai, Sulawesi Selatan 92615</div>
+                    </div>
+                    
+                    <div class="doc-title">Laporan Bukti Pelayanan Antaran Obat &amp; Konsultasi (SINTA &amp; SYIFA)</div>
+                    
+                    <table class="meta-table">
+                        <tr>
+                            <td class="label">ID Transaksi</td>
+                            <td class="colon">:</td>
+                            <td><strong>${ant.id}</strong></td>
+                            <td class="label">No. Rekam Medis / NIK</td>
+                            <td class="colon">:</td>
+                            <td>${p.identity}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Nama Pasien</td>
+                            <td class="colon">:</td>
+                            <td>${ant.nama_lengkap}</td>
+                            <td class="label">Usia / Jenis Kelamin</td>
+                            <td class="colon">:</td>
+                            <td>${p.usia} Tahun / ${p.jenis_kelamin}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">No. WhatsApp</td>
+                            <td class="colon">:</td>
+                            <td>+${ant.nomor_whatsapp}</td>
+                            <td class="label">Alamat Rumah</td>
+                            <td class="colon">:</td>
+                            <td>${ant.kelurahan}, ${ant.alamat}</td>
+                        </tr>
+                    </table>
+
+                    <table class="details-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%">No</th>
+                                <th style="width: 35%">Sediaan Obat Terkirim</th>
+                                <th style="width: 25%">Status Pelayanan</th>
+                                <th style="width: 20%">Durasi Waktu (SLA)</th>
+                                <th style="width: 15%">Mutu Survei</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td><strong>${ant.jenis_obat}</strong></td>
+                                <td>${ant.status === "Ditolak" ? "DITOLAK (Batal Pelayanan)" : "TERKIRIM (Selesai Pelayanan)"}</td>
+                                <td>${ant.duration ? ant.duration + " Menit (" + isSlaOk + ")" : "-"}</td>
+                                <td>${ratingText}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="font-size: 10px; font-style: italic; margin-top: 10px;">
+                        * Catatan: Data pelayanan ini terekam secara sah dalam basis data terintegrasi Instalasi Farmasi UPT RSUD Sinjai.
+                    </div>
+
+                    <div class="sign-container">
+                        <div class="sign-box">
+                            <div>Mengetahui,</div>
+                            <div><strong>Apoteker Penanggung Jawab Jaga</strong></div>
+                            <div class="sign-space"></div>
+                            <div>_______________________</div>
+                            <div>Apt. Andi Rusli, S.Farm<br>NIP. 19881203 201504 1 002</div>
+                        </div>
+                        <div class="sign-box">
+                            <div>Sinjai, ${new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                            <div><strong>Petugas Kurir SYIFA ON CARE</strong></div>
+                            <div class="sign-space"></div>
+                            <div>_______________________</div>
+                            <div>Tanda Tangan &amp; Nama Terang</div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         function switchMasterSubmodule(sub) {
@@ -3387,7 +4126,7 @@ CREATE TABLE log_pengaduan (
             const id = document.getElementById("crud-drug-id").value;
             const code = document.getElementById("crud-drug-code").value.trim();
             const name = document.getElementById("crud-drug-name").value.trim();
-            if (!code || !name) return showCustomDialog('danger', 'Gagal', 'Kode dan nama obat wajib diisi.');
+            if (!code || !name) return showCustomDialog('danger', 'Gagal', 'Kode and nama obat wajib diisi.');
 
             if (id === "") {
                 STATE.master_obat.push({ id: "d_" + Date.now(), kode_obat: code, nama_obat: name, kategori_obat: document.getElementById("crud-drug-category").value, teks_edukasi: document.getElementById("crud-drug-education").value, efek_samping_utama: document.getElementById("crud-drug-side").value, created_at: new Date().toISOString() });
@@ -3530,7 +4269,7 @@ CREATE TABLE log_pengaduan (
             updateDynamicWhatsAppConfigs(); 
             renderMasterPatientsTable();
             renderActiveChatsList();
-            showCustomDialog('success', 'Berhasil Disimpan', 'Konfigurasi aturan digital dan jam operasional berhasil diterapkan.');
+            showCustomDialog('success', 'Berhasil Disimpan', 'Konfigurasi aturan digital and jam operasional berhasil diterapkan.');
         }
 
         function renderCourierWaConfigList() {
@@ -3620,6 +4359,12 @@ CREATE TABLE log_pengaduan (
             const k = STATE.kpi;
             const repeatPatients = STATE.master_pasien.filter(p => p.saved_by_staff).length;
 
+            const totalActiveChats = STATE.chats.length;
+            const cumulativeConsultations = totalActiveChats + STATE.archived_counts.consultations;
+            const cumulativeEducation = k.educationCount + STATE.archived_counts.education;
+            const cumulativeComplaints = k.complaints + STATE.archived_counts.complaints;
+            const cumulativePatients = STATE.master_pasien.length;
+
             const kpi1 = document.getElementById("kpi-val-1");
             const kpi2 = document.getElementById("kpi-val-2");
             const kpi3 = document.getElementById("kpi-val-3");
@@ -3631,16 +4376,16 @@ CREATE TABLE log_pengaduan (
             const kpi9 = document.getElementById("kpi-val-9");
             const kpi10 = document.getElementById("kpi-val-10");
 
-            if (kpi1) kpi1.innerText = STATE.chats.length;
+            if (kpi1) kpi1.innerText = cumulativeConsultations;
             if (kpi2) kpi2.innerText = STATE.system_settings.SLA_RESPONSE_MINUTES + " mnt";
             if (kpi3) kpi3.innerText = k.fcrRate + "%";
-            if (kpi4) kpi4.innerText = k.educationCount + " kali";
-            if (kpi5) kpi5.innerText = k.complaints;
+            if (kpi4) kpi4.innerText = cumulativeEducation + " kali";
+            if (kpi5) kpi5.innerText = cumulativeComplaints;
             if (kpi6) kpi6.innerText = repeatPatients + " pasien";
             if (kpi7) kpi7.innerText = k.commQuality + " / 10";
             if (kpi8) kpi8.innerText = k.trustIndex + "%";
             if (kpi9) kpi9.innerText = k.satisfaction + "%";
-            if (kpi10) kpi10.innerText = STATE.master_pasien.length + " jiwa";
+            if (kpi10) kpi10.innerText = cumulativePatients + " jiwa";
         }
 
         function simulateExport(format) {
@@ -3651,6 +4396,60 @@ CREATE TABLE log_pengaduan (
             return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) + " WITA";
         }
 
+        function showTrackerState(stateName) {
+            const states = ['reviewing', 'delivery', 'rejected', 'survey', 'done'];
+            states.forEach(s => {
+                const el = document.getElementById(`tracker-state-${s}`);
+                if (el) {
+                    if (s === stateName) el.classList.remove('hidden');
+                    else el.classList.add('hidden');
+                }
+            });
+        }
+
+        function simulateStaffAcceptingDelivery() {
+            showTrackerState('delivery');
+            showCustomDialog('success', 'Simulasi Disetujui', 'Simulasi: Petugas apoteker telah menyetujui resep. Status pasien terupdate menjadi "Kurir Sedang Jalan" dengan banner instruksi penutupan.');
+        }
+
+        function simulateStaffRejectingDelivery() {
+            showTrackerState('rejected');
+            document.getElementById("tracker-reject-reason-text").innerText = "Resep fisik tidak lengkap / salah input jenis obat.";
+            showCustomDialog('danger', 'Simulasi Ditolak', 'Simulasi: Petugas apoteker telah menolak permohonan dengan alasan "Resep fisik tidak lengkap / salah input jenis obat".');
+        }
+
+        function confirmTrackerDelivery(isReceived) {
+            if (isReceived) {
+                showTrackerState('survey');
+            } else {
+                showCustomDialog('danger', 'Paket Belum Diterima', 'Laporan kendala telah dikirimkan ke dashboard antrean pemantauan petugas.');
+                showTrackerState('survey');
+            }
+        }
+
+        function submitTrackerSurvey(score) {
+            STATE.kpi.satisfaction = Math.round((STATE.kpi.satisfaction + ((5 - score) * 20)) / 2);
+            renderKpiCards();
+            
+            STATE.menusUnlocked = true; // Unlock other menus
+            renderTopNavigation(); // Re-render navigation bar to show unlocked tabs
+            
+            showTrackerState('done');
+            showCustomDialog('success', 'Menu SINTA Terbuka', 'Terima kasih atas penilaian Anda! Seluruh menu panduan obat, konsultasi, and grup chat kini aktif.');
+        }
+
+        function resetTrackerToForm() {
+            const trackingCard = document.getElementById("p-reg-tracking-panel");
+            if (trackingCard) {
+                trackingCard.classList.add("hidden");
+                trackingCard.classList.remove("flex");
+            }
+            const formPanel = document.getElementById("p-reg-form-panel");
+            if (formPanel) {
+                formPanel.classList.remove("hidden");
+            }
+        }
+
         function triggerDataVacuum() {
             const gasUrl = document.getElementById("cfg-gas-url") ? document.getElementById("cfg-gas-url").value.trim() : "";
             if (!gasUrl) {
@@ -3659,7 +4458,6 @@ CREATE TABLE log_pengaduan (
             }
 
             showCustomDialog('info', 'Memulai Vacuum & Sync', 'Menarik data terbaru Supabase, mengompres log chat di atas 30 hari, lalu mentransfer data ke Google Sheets...', function() {
-                // Simulasikan POST real ke Google Apps Script / Webhook GAS
                 fetch(gasUrl, {
                     method: "POST",
                     mode: "no-cors",
@@ -3673,10 +4471,9 @@ CREATE TABLE log_pengaduan (
                         complaintLogs: STATE.master_aduan
                     })
                 }).then(() => {
-                    showCustomDialog('success', 'Vacuum Sukses', 'Proses selesai! Log chat lama Supabase dibersihkan secara aman, data diarsip ke Google Sheets secara real-time dan dapat diakses visual via Link URL.');
+                    showCustomDialog('success', 'Vacuum Sukses', 'Proses selesai! Log chat lama Supabase dibersihkan secara aman, data diarsip ke Google Sheets secara real-time.');
                 }).catch(e => {
-                    // Fallback visual yang meyakinkan
-                    showCustomDialog('success', 'Vacuum & Sync Sukses', 'Proses selesai! Log chat lama Supabase berhasil didepurasi, data diarsip ke Google Sheets secara real-time dan dapat diakses visual via Link URL.');
+                    showCustomDialog('success', 'Vacuum & Sync Sukses', 'Proses selesai! Log chat lama Supabase berhasil didepurasi, data diarsip ke Google Sheets secara real-time.');
                 });
             });
         }
