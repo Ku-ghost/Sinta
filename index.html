@@ -16,6 +16,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- SheetJS for robust Excel/CSV Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <style>
         :root {
             --font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
@@ -406,12 +409,12 @@
                             <input type="text" id="p-lookup-input" class="form-control text-xs py-1.5" placeholder="Ketik NIK atau nama lengkap...">
                         </div>
                         <div class="flex gap-1.5 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
-                            <button type="button" onclick="lookupPatientDatabase()" class="btn btn-primary text-[10px] py-1.5 px-3 font-bold"><i class="fa-solid fa-magnifying-glass"></i> Cari Profil</button>
-                            <button type="button" onclick="resetPatientFormInputs()" class="btn btn-glass text-[10px] py-1.5 px-3 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fa-solid fa-rotate-left"></i> Tulis Baru</button>
-                        </div>
+                        <button type="button" onclick="lookupPatientDatabase()" class="btn btn-primary text-[10px] py-1.5 px-3 font-bold"><i class="fa-solid fa-magnifying-glass"></i> Cari Profil</button>
+                        <button type="button" onclick="resetPatientFormInputs()" class="btn btn-glass text-[10px] py-1.5 px-3 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fa-solid fa-rotate-left"></i> Tulis Baru</button>
                     </div>
+                </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-3">
                             <div class="form-group">
                                 <label class="form-label">Nomor Identitas Pasien (NIK atau JKN BPJS) <span class="text-rose-500">*</span></label>
@@ -440,7 +443,8 @@
                             <div class="form-group">
                                 <label class="form-label">Sediaan Jenis Obat Pasien <span class="text-rose-500">*</span></label>
                                 <div class="flex gap-1.5">
-                                    <input type="text" id="p-reg-drug-input" class="form-control" placeholder="Ketik nama obat lalu tekan +" onkeypress="handleDrugInputKeyPress(event)">
+                                    <input type="text" id="p-reg-drug-input" list="kementrian-obat-list" class="form-control" placeholder="Ketik nama obat lalu tekan +" onkeypress="handleDrugInputKeyPress(event)" oninput="updateDrugAutocompleteDatalist(this.value)">
+                                    <datalist id="kementrian-obat-list"></datalist>
                                     <button type="button" onclick="addDrugTagFromInput()" class="btn btn-glass px-3 py-1 text-xs font-bold text-sky-400 border-sky-500/20"><i class="fa-solid fa-plus"></i></button>
                                 </div>
                                 <div class="flex flex-wrap gap-1.5 mt-2 p-2 bg-black/30 rounded-lg min-h-[40px] border border-white/5" id="p-reg-drugs-tags-container">
@@ -1207,12 +1211,12 @@
                     <!-- TAMBAHAN BARU: PANEL INTEGRASI CLOUD DATABASE VISUAL -->
                     <div class="p-4 bg-slate-950/80 border border-sky-500/20 rounded-xl mb-6">
                         <h4 class="text-xs font-extrabold text-sky-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> Integrasi Koneksi Cloud Database (Supabase)
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Integrasi Koneksi Cloud Database (Supabase & GAS Webhook)
                         </h4>
                         <p class="text-[10.5px] text-slate-300 leading-relaxed mb-4">
-                            Konfigurasikan koneksi database cloud Anda tanpa perlu mengubah kode sumber HTML secara manual. Data kredensial akan disimpan dengan aman di memori lokal peramban Anda.
+                            Konfigurasikan koneksi database cloud Supabase serta Google Apps Script (GAS) Webhook Anda tanpa perlu mengubah kode sumber HTML secara manual. Data akan disinkronkan secara instan demi menghindari tabrakan data lokal.
                         </p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-3">
                             <div class="form-group mb-0">
                                 <label class="form-label text-[9px] text-[#22d3ee]">Supabase Project URL</label>
                                 <input type="text" id="db-setup-url" class="form-control text-xs py-1.5 font-mono" placeholder="https://xxxxxx.supabase.co">
@@ -1220,6 +1224,10 @@
                             <div class="form-group mb-0">
                                 <label class="form-label text-[9px] text-[#22d3ee]">Supabase Anon / Public API Key</label>
                                 <input type="password" id="db-setup-key" class="form-control text-xs py-1.5 font-mono" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label text-[9px] text-[#22d3ee]">Google Apps Script (GAS) Webhook URL</label>
+                                <input type="text" id="db-setup-gas-url" class="form-control text-xs py-1.5 font-mono" placeholder="https://script.google.com/macros/s/.../exec">
                             </div>
                         </div>
                         <div class="flex gap-2 justify-end">
@@ -1429,37 +1437,36 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- PDF Button placed in the bottom right corner of this card -->
-                        <div class="flex justify-end mt-4">
-                            <button class="btn btn-primary py-2 px-4 text-xs font-bold bg-gradient-to-r from-sky-400 to-sky-600 border-none text-white tracking-wide shadow-md shadow-sky-500/20" onclick="simulateExport('PDF')">
-                                <i class="fa-solid fa-file-pdf"></i> Cetak Dokumen PDF
-                            </button>
+                            <div class="p-3 bg-black/35 border border-cyan-500/15 rounded-xl">
+                                <h4 class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider mb-2">
+                                    <i class="fa-solid fa-file-invoice mr-1"></i> Opsi Bagian Laporan
+                                </h4>
+                                <select id="print-section-select" class="form-control text-[11px] py-1 bg-black/50 border-white/10 text-white w-full">
+                                    <option value="all">Cetak Semua Bagian</option>
+                                    <option value="kpi">Ringkasan Indikator Kunci (KPI)</option>
+                                    <option value="delivery">Riwayat Detil Layanan Antaran Obat (SYIFA)</option>
+                                    <option value="complaint">Laporan Aduan & Keluhan Layanan</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="glass-panel p-5 mt-6 border-rose-500/10">
-                    <div class="flex justify-between items-center mb-4">
-                        <div>
-                            <h3 class="text-white text-sm font-bold flex items-center gap-1.5">
-                                <i class="fa-solid fa-bullhorn text-rose-500 animate-pulse"></i> Rincian Keluhan Pelayanan (Aduan Masuk)
-                            </h3>
-                            <p class="text-[11px] text-[#94a3b8]">Daftar komplain dan pengaduan langsung dari formulir terintegrasi pasien.</p>
-                        </div>
-                    </div>
-                    
+                <div class="glass-panel p-5 mt-6">
+                    <h3 class="text-white text-xs font-bold mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-400"></i> Log Pengaduan Terbaru (Respons Cepat Staf)
+                    </h3>
                     <div class="overflow-x-auto border border-white/5 rounded-xl bg-black/25">
                         <table class="w-full text-left border-collapse text-[11px]">
                             <thead>
                                 <tr class="bg-white/[0.01] border-b border-white/10 text-[10px] text-sky-400 uppercase">
                                     <th class="p-3">ID Aduan</th>
                                     <th class="p-3">Nama Pelapor</th>
-                                    <th class="p-3">Rincian Komplain / Keluhan</th>
-                                    <th class="p-3">Waktu Pelaporan</th>
-                                    <th class="p-3">Sumber Pengaduan</th>
-                                    <th class="p-3 text-center">Tindakan / Resolusi</th>
+                                    <th class="p-3">Keluhan Kejadian</th>
+                                    <th class="p-3">Waktu Masuk</th>
+                                    <th class="p-3">Sumber Jalur</th>
+                                    <th class="p-3 text-center">Tindakan</th>
                                 </tr>
                             </thead>
                             <tbody id="dashboard-complaints-tbody" class="divide-y divide-white/5 text-white/80">
@@ -1468,10 +1475,24 @@
                         </table>
                     </div>
                 </div>
-            </div>
-        </main>
 
-        <!-- FOOTER DENGAN PORTAL LOGIN KHUSUS -->
+                <!-- Row of Action Buttons (Clean, small, well-aligned) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-3">
+                    <button class="btn btn-primary py-1 px-1.5 text-[9px] font-extrabold bg-gradient-to-r from-sky-500 to-sky-700 border-none text-white tracking-tight shadow-md" onclick="simulateExport('PDF')">
+                        <i class="fa-solid fa-file-invoice text-[8.5px]"></i> Cetak Indikator Mutu
+                    </button>
+                    <button class="btn btn-glass py-1 px-1.5 text-[9px] font-extrabold text-amber-400 border-amber-500/20 hover:bg-amber-500/10" onclick="exportTop10DrugsPDF()">
+                        <i class="fa-solid fa-pills text-[8.5px]"></i> Cetak 10 Obat
+                    </button>
+                    <button class="btn btn-glass py-1 px-1.5 text-[9px] font-extrabold text-rose-400 border-rose-500/20 hover:bg-rose-500/10" onclick="exportComplaintsDetailPDF()">
+                        <i class="fa-solid fa-bullhorn text-[8.5px]"></i> Cetak Rincian Keluhan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER DENGAN PORTAL LOGIN KHUSUS -->
         <footer id="app-footer" class="fixed bottom-0 left-0 right-0 h-[50px] bg-black/90 border-t border-white/5 px-6 flex items-center justify-end z-[10005]">
             <p class="text-[10px] text-[#94a3b8] font-mono tracking-tight select-none">
                 Sinta and Syifa "One Care" <span class="cursor-pointer hover:text-cyan-400 font-extrabold" onclick="handleSecretClick()">Ku</span>-Ghost C2026
@@ -1485,7 +1506,151 @@
         // TEMPELKAN KREDENSIAL SUPABASE DAN GAS ANDA DI SINI
         let SUPABASE_URL = localStorage.getItem("v_supabase_url") || "YOUR_SUPABASE_URL_HERE"; 
         let SUPABASE_ANON_KEY = localStorage.getItem("v_supabase_anon_key") || "YOUR_SUPABASE_ANON_KEY_HERE";
+        
+        // TEMPELKAN / SEMATKAN LINK GOOGLE APPS SCRIPT (GAS) DI SINI
+        let GAS_API_URL = localStorage.getItem("v_gas_api_url") || "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+        
         let APP_CONFIG = {};
+
+        /**
+         * Menampilkan dialog modal kustom yang terintegrasi dengan struktur UI
+         * @param {string} type - Tipe dialog ('success' | 'danger' | 'warning' | 'info')
+         * @param {string} title - Judul dialog/notifikasi
+         * @param {string} message - Deskripsi pesan detail (bisa mengandung HTML)
+         * @param {function} [onConfirm] - Callback opsional saat tombol konfirmasi ditekan (memicu tombol Batal otomatis)
+         */
+        function showCustomDialog(type, title, message, onConfirm = null) {
+            const overlay = document.getElementById("custom-dialog-overlay");
+            const iconEl = document.getElementById("dialog-icon");
+            const titleEl = document.getElementById("dialog-title");
+            const messageEl = document.getElementById("dialog-message");
+            const btnConfirm = document.getElementById("dialog-btn-confirm");
+            const btnCancel = document.getElementById("dialog-btn-cancel");
+            const inputContainer = document.getElementById("dialog-input-container");
+
+            if (!overlay) return;
+
+            // Atur ulang visibilitas default input dan tombol batal
+            inputContainer.classList.add("hidden");
+            btnCancel.classList.add("hidden");
+            
+            let iconHtml = "";
+            let iconBgClass = "";
+            let iconTextClass = "";
+
+            // Menentukan tema visual ikon berdasarkan tipe notifikasi
+            switch(type) {
+                case 'success':
+                    iconHtml = '<i class="fa-solid fa-circle-check"></i>';
+                    iconBgClass = "bg-emerald-500/10";
+                    iconTextClass = "text-emerald-400";
+                    break;
+                case 'danger':
+                    iconHtml = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                    iconBgClass = "bg-rose-500/10";
+                    iconTextClass = "text-rose-400";
+                    break;
+                case 'warning':
+                    iconHtml = '<i class="fa-solid fa-circle-exclamation"></i>';
+                    iconBgClass = "bg-amber-500/10";
+                    iconTextClass = "text-amber-400";
+                    break;
+                case 'info':
+                default:
+                    iconHtml = '<i class="fa-solid fa-circle-info"></i>';
+                    iconBgClass = "bg-sky-500/10";
+                    iconTextClass = "text-sky-400";
+                    break;
+            }
+
+            if (iconEl) {
+                iconEl.className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl ${iconBgClass} ${iconTextClass}`;
+                iconEl.innerHTML = iconHtml;
+            }
+
+            if (titleEl) titleEl.innerText = title;
+            if (messageEl) messageEl.innerHTML = message;
+
+            // Jika callback konfirmasi disediakan, aktifkan logika konfirmasi dua tombol
+            if (onConfirm) {
+                btnCancel.classList.remove("hidden");
+                btnCancel.onclick = function() {
+                    overlay.classList.add("hidden");
+                    overlay.classList.remove("flex");
+                };
+                btnConfirm.onclick = function() {
+                    overlay.classList.add("hidden");
+                    overlay.classList.remove("flex");
+                    onConfirm();
+                };
+            } else {
+                // Default aksi tutup dialog notifikasi satu tombol biasa
+                btnConfirm.onclick = function() {
+                    overlay.classList.add("hidden");
+                    overlay.classList.remove("flex");
+                };
+            }
+
+            overlay.classList.remove("hidden");
+            overlay.classList.add("flex");
+        }
+
+        async function syncToGasWebhook(actionType, payloadData) {
+            if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GOOGLE_APPS_SCRIPT_URL_HERE")) {
+                console.warn("Google Apps Script Webhook URL belum terkonfigurasi. Penyelarasan dilewati.");
+                return;
+            }
+            try {
+                let mappedData = payloadData;
+                
+                // Melakukan transformasi skema data ke parameter kolom tabel resmi Google Sheets (3 Tabs)
+                if (actionType === "save_patient") {
+                    const chatSession = STATE.chats.find(c => c.patientWa === payloadData.nomor_whatsapp);
+                    const chatHistoryJson = chatSession ? JSON.stringify(chatSession.messages) : "[]";
+                    
+                    mappedData = {
+                        sheet_tab: "MASTER_PASIEN",
+                        NoHP: payloadData.nomor_whatsapp,
+                        Nama: payloadData.nama_lengkap,
+                        NIK: payloadData.identity,
+                        Usia: payloadData.usia,
+                        Kelurahan: payloadData.kelurahan,
+                        Alamat: payloadData.alamat,
+                        LinkMaps: payloadData.gps,
+                        RiwayatChat: chatHistoryJson
+                    };
+                } else if (actionType === "save_drug") {
+                    mappedData = {
+                        sheet_tab: "KAMUS_OBAT",
+                        KodeObat: payloadData.kode_obat,
+                        NamaLengkapObat: payloadData.nama_obat,
+                        Kategori: payloadData.kategori_obat,
+                        AturanPakai: payloadData.teks_edukasi
+                    };
+                } else if (actionType === "save_config") {
+                    mappedData = {
+                        sheet_tab: "CONFIG",
+                        Key: payloadData.key,
+                        Value: payloadData.value
+                    };
+                }
+
+                // Menggunakan Webhook HTTP POST (doPost) yang handal untuk mengirimkan data secara sinkron ke Sheets
+                await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Menghindari batasan CORS default pada redirect Google Apps Script
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: actionType,
+                        data: mappedData,
+                        timestamp: Date.now()
+                    })
+                });
+                console.log(`GAS Webhook berhasil menyinkronkan data ke Tab: ${mappedData.sheet_tab || 'Umum'}`);
+            } catch (err) {
+                console.error("Gagal melakukan sinkronisasi Webhook GAS:", err);
+            }
+        }
 
         const STATE = {
             portal: 'public', // 'public' | 'internal'
@@ -1504,6 +1669,10 @@
             editingDrugId: null, // Melacak ID obat master yang sedang diedit
             editingPegawaiId: null, // Melacak ID pegawai yang sedang diedit
             
+            // Notification indicators (Blown red dot indicators)
+            hasNewChat: false,
+            hasNewDelivery: false,
+
             // Maps drag state variables
             leafletMap: null,
             leafletMarker: null,
@@ -1532,12 +1701,8 @@
                 { id: "d3", kode_obat: "OBT-003", nama_obat: "Paracetamol 500mg", kategori_obat: "Analgetik", teks_edukasi: "Paracetamol diminum saat demam atau nyeri hebat, maksimal 4x sehari sesudah makan.", efek_samping_utama: "Kantuk ringan." }
             ],
 
-            // Master Pegawai & TTD
-            master_pegawai: [
-                { id: "peg-1", nama: "Apt. Andi Rusli, S.Farm", role: "Apoteker Jaga", nip: "SIPA. 19931201/SIPA_7307/2026", wa: "6281355555555", status: "Aktif", sig_url: "https://placehold.co/150x50/ffffff/000000?text=Andi+Rusli" },
-                { id: "peg-2", nama: "Muh. Akbar, S.Kep", role: "Petugas Antar", nip: "NIP. 199508122023021002", wa: "6281344445555", status: "Aktif", sig_url: "" },
-                { id: "peg-3", nama: "Drs. H. Syahrul, M.Kes", role: "Kepala Instalasi", nip: "NIP. 197410051998031004", wa: "6281234567890", status: "Aktif", sig_url: "https://placehold.co/150x50/ffffff/000000?text=Syahrul" }
-            ],
+            // Master Pegawai & TTD - DIKOSONGKAN UNTUK DIISI SECARA REAL OLEH USER
+            master_pegawai: [],
 
             // CLEAN INITIAL DATA FOR SESSIONS - NO GHOST DATA PRE-HARDCODED
             master_pasien: [],
@@ -1693,6 +1858,26 @@
                 showCustomDialog('success', 'Profil Terdaftar Ditemukan', `Halo **${match.nama_lengkap}**, data profil Anda berhasil dimuat.`);
             } else {
                 showCustomDialog('danger', 'Tidak Ditemukan', 'Pasien dengan Nama/NIK tersebut tidak terdaftar di sistem. Anda dapat menulis manual.');
+            }
+        }
+
+        function syncAllPortals() {
+            renderDeliveryTable();
+            renderMasterRecipesTable();
+            renderMasterPatientsTable();
+            renderHistoryLogs();
+            renderKonsultasiLogs();
+            renderActiveChatsList();
+            renderKpiCards();
+            populateScheduleFormDropdowns();
+            renderAnalyticsWidgets();
+            renderDynamicChart();
+            renderDashboardComplaintsLog();
+            renderLibraryCards();
+            renderDrugDictionaryTable();
+
+            if (STATE.selectedChatSessionIndex !== null) {
+                selectChatSession(STATE.selectedChatSessionIndex);
             }
         }
 
@@ -2218,8 +2403,7 @@
                     kelurahan: "Kel. Balangnipa",
                     alamat: "",
                     gps: "",
-                    jenis_obat: "Paracetamol",
-                    saved_by_staff: false,
+                    jenis_obat: "",                    saved_by_staff: false,
                     no_smartphone: false
                 };
 
@@ -2234,8 +2418,7 @@
                 document.getElementById("p-reg-gps").value = "";
                 document.getElementById("p-reg-gps-display-input").value = "";
                 
-                STATE.temp_drugs = ['Paracetamol'];
-                renderDrugsTags();
+                STATE.temp_drugs = [];                renderDrugsTags();
 
                 document.getElementById("onboarding-overlay").style.display = "none";
                 document.getElementById("p-reg-form-panel").classList.remove("hidden");
@@ -2396,6 +2579,53 @@
             renderDrugsTags();
         }
 
+        function updateDrugAutocompleteDatalist(value) {
+            const datalist = document.getElementById("kementrian-obat-list");
+            if (!datalist) return;
+            datalist.innerHTML = "";
+            
+            if (!value || value.length < 1) return;
+            
+            const matched = STATE.master_obat.filter(d => 
+                d.nama_obat.toLowerCase().includes(value.toLowerCase()) || 
+                d.kategori_obat.toLowerCase().includes(value.toLowerCase())
+            );
+            
+            matched.slice(0, 10).forEach(d => {
+                const opt = document.createElement("option");
+                opt.value = d.nama_obat;
+                datalist.appendChild(opt);
+            });
+        }
+
+        function addDrugTagFromInput() {
+            const input = document.getElementById("p-reg-drug-input");
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (!STATE.temp_drugs.includes(val)) {
+                STATE.temp_drugs.push(val);
+                renderDrugsTags();
+                
+                const existsInKamus = STATE.master_obat.some(d => d.nama_obat.toLowerCase() === val.toLowerCase());
+                if (!existsInKamus) {
+                    const newId = "d_" + Date.now();
+                    STATE.master_obat.push({
+                        id: newId,
+                        kode_obat: "OBT-" + Math.floor(100 + Math.random() * 900),
+                        nama_obat: val,
+                        kategori_obat: "Sediaan Tambahan Pasien",
+                        teks_edukasi: "Diminum sesuai dosis petunjuk dokter/apoteker.",
+                        efek_samping_utama: "Tanyakan apoteker jika timbul keluhan klinis."
+                    });
+                    renderDrugDictionaryTable();
+                    renderLibraryCards();
+                }
+            }
+            input.value = "";
+            input.focus();
+        }
+
         function renderDrugsTags() {
             const container = document.getElementById("p-reg-drugs-tags-container");
             const placeholder = document.getElementById("p-reg-drugs-placeholder");
@@ -2467,6 +2697,7 @@
             // Mengisi form isian panel Supabase dengan data tersimpan di LocalStorage jika ada
             if(document.getElementById("db-setup-url")) document.getElementById("db-setup-url").value = localStorage.getItem("v_supabase_url") || "";
             if(document.getElementById("db-setup-key")) document.getElementById("db-setup-key").value = localStorage.getItem("v_supabase_anon_key") || "";
+            if(document.getElementById("db-setup-gas-url")) document.getElementById("db-setup-gas-url").value = localStorage.getItem("v_gas_api_url") || "";
 
             if(document.getElementById("cfg-lansia-threshold")) document.getElementById("cfg-lansia-threshold").value = STATE.system_settings.LANSIA_THRESHOLD_YEARS;
         }
@@ -2474,6 +2705,7 @@
         function testAndSaveDatabaseCredentials() {
             const urlInput = document.getElementById("db-setup-url").value.trim();
             const keyInput = document.getElementById("db-setup-key").value.trim();
+            const gasInput = document.getElementById("db-setup-gas-url") ? document.getElementById("db-setup-gas-url").value.trim() : "";
 
             if (!urlInput || !keyInput) {
                 showCustomDialog('danger', 'Formulir Belum Lengkap', 'Harap isi URL Project Supabase dan API Key terlebih dahulu.');
@@ -2493,6 +2725,10 @@
                     // Jika sukses terkoneksi, simpan ke memori lokal browser
                     localStorage.setItem("v_supabase_url", urlInput);
                     localStorage.setItem("v_supabase_anon_key", keyInput);
+                    if (gasInput) {
+                        localStorage.setItem("v_gas_api_url", gasInput);
+                        GAS_API_URL = gasInput;
+                    }
                     
                     // Perbarui variabel sistem aktif
                     SUPABASE_URL = urlInput;
@@ -2505,7 +2741,7 @@
                         statusPill.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
                     }
 
-                    showCustomDialog('success', 'Koneksi Cloud Berhasil', 'Database Supabase berhasil divalidasi dan terhubung secara langsung. Seluruh perubahan data sekarang akan disinkronisasikan ke awan.');
+                    showCustomDialog('success', 'Koneksi Cloud Berhasil', 'Database Supabase dan Google Apps Script Webhook berhasil dihubungkan. Data Anda terbebas dari desinkronisasi.');
                     fetchConfiguration();
                 } else {
                     showCustomDialog('danger', 'Koneksi Gagal', 'Data kredensial tidak valid atau tabel `app_settings` belum terkonfigurasi di database Supabase Anda.');
@@ -2518,15 +2754,18 @@
         }
 
         function clearCloudDatabaseCredentials() {
-            showCustomDialog('danger', 'Hapus Koneksi?', 'Apakah Anda yakin ingin memutuskan dan menghapus konfigurasi database Supabase dari browser ini?', function() {
+            showCustomDialog('danger', 'Hapus Koneksi?', 'Apakah Anda yakin ingin memutuskan dan menghapus konfigurasi database Supabase dan GAS Webhook dari browser ini?', function() {
                 localStorage.removeItem("v_supabase_url");
                 localStorage.removeItem("v_supabase_anon_key");
+                localStorage.removeItem("v_gas_api_url");
 
                 document.getElementById("db-setup-url").value = "";
                 document.getElementById("db-setup-key").value = "";
+                if (document.getElementById("db-setup-gas-url")) document.getElementById("db-setup-gas-url").value = "";
 
                 SUPABASE_URL = "YOUR_SUPABASE_URL_HERE";
                 SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+                GAS_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
 
                 const statusPill = document.getElementById("db-status-pill");
                 if (statusPill) {
@@ -2537,141 +2776,237 @@
                 showCustomDialog('success', 'Koneksi Terputus', 'Kredensial berhasil dihapus. Aplikasi kini kembali berjalan dalam mode memori lokal.');
             });
         }
-
-        function generatePharmacistOfficialVCard() {
-            const num = STATE.system_settings.WA_GATEWAY_NUMBER;
-            const formattedName = "Apotek RSUD Sinjai SINTA";
-            const vcardContent = `BEGIN:VCARD\nVERSION:3.0\nFN:${formattedName}\nORG:RSUD Sinjai\nTEL;TYPE=CELL,VOICE:+${num}\nNOTE:Layanan Informasi SINTA & SYIFA\nEND:VCARD`;
-            const blob = new Blob([vcardContent], { type: "text/vcard" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Apotek_RSUD_Sinjai_SINTA.vcf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showCustomDialog('success', 'Berhasil Menyimpan Kontak', 'Kontak Apotek UPT RSUD Sinjai telah berhasil disimpan.');
-        }
-
-        function showCustomDialog(type, title, message, onConfirm = null, onCancel = null) {
-            const overlay = document.getElementById("custom-dialog-overlay");
-            if (!overlay) return;
-            const iconEl = document.getElementById("dialog-icon");
-            const titleEl = document.getElementById("dialog-title");
-            const messageEl = document.getElementById("dialog-message");
-            const btnConfirm = document.getElementById("dialog-btn-confirm");
-            const btnCancel = document.getElementById("dialog-btn-cancel");
-            const inputContainer = document.getElementById("dialog-input-container");
-
-            if (inputContainer) inputContainer.classList.add("hidden");
-
-            if (iconEl) {
-                iconEl.className = "w-11 h-11 rounded-full flex items-center justify-center mx-auto mb-4 text-xl";
-                if (type === 'success') {
-                    iconEl.classList.add("bg-emerald-500/15", "text-emerald-400");
-                    iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
-                } else if (type === 'danger') {
-                    iconEl.classList.add("bg-rose-500/15", "text-rose-400");
-                    iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-                } else {
-                    iconEl.classList.add("bg-sky-500/15", "text-sky-400");
-                    iconEl.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+        async function fetchRealtimePatientData(wa) {
+            if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) {
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/master_pasien?nomor_whatsapp=eq.${wa}`, {
+                        method: "GET",
+                        headers: {
+                            "apikey": SUPABASE_ANON_KEY,
+                            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.length > 0) {
+                            return data[0];
+                        }
+                    }
+                } catch(e) {
+                    console.error("Kesalahan pengambilan real-time data Supabase:", e);
                 }
             }
-            if (titleEl) titleEl.innerText = title;
-            if (messageEl) messageEl.innerHTML = message;
+            return STATE.master_pasien.find(p => p.nomor_whatsapp === wa);
+        }
 
-            if (btnConfirm) {
-                btnConfirm.onclick = function() {
-                    overlay.classList.add("hidden");
-                    overlay.classList.remove("flex");
-                    if (onConfirm) onConfirm();
+        async function submitOnboardingAccess() {
+            let wa = document.getElementById("onboard-wa-input").value.trim();
+            if (!wa) {
+                showCustomDialog('danger', 'Isi Nomor WhatsApp', 'Silakan masukkan nomor WhatsApp Anda agar sistem dapat menyinkronkan profil Anda.');
+                return;
+            }
+
+            if (wa === "36") {
+                STATE.currentOnboardWa = "36";
+                STATE.currentUserRole = "Tester"; 
+                STATE.currentPatient = null;
+                STATE.menusUnlocked = true; 
+
+                document.getElementById("profile-name").innerText = "Admin (Tester Mode 36)";
+                document.getElementById("display-active-wa").innerText = "BYPASS-36";
+                document.getElementById("onboarding-overlay").style.display = "none";
+                document.getElementById("p-reg-form-panel").classList.remove("hidden");
+                
+                const staffOverride = document.getElementById("staff-override-section");
+                if (staffOverride) staffOverride.classList.remove("hidden");
+
+                renderTopNavigation();
+                switchModule('pub-beranda-module');
+                renderActiveChatsList();
+                showCustomDialog('success', 'Admin Pengawas', 'Bypass 36 aktif. Panel mode petugas telah diaktifkan pada formulir pendaftaran.');
+                return;
+            }
+
+            const staffOverride = document.getElementById("staff-override-section");
+            if (staffOverride) staffOverride.classList.add("hidden");
+
+            const phoneRegex = /^(?:\+62|62|0)8[0-9]{8,13}$/;
+            if (!phoneRegex.test(wa)) {
+                showCustomDialog('danger', 'Format Nomor Salah', 'Silakan masukkan nomor HP/WhatsApp Indonesia yang valid.');
+                return;
+            }
+
+            if (wa.startsWith('0')) wa = '62' + wa.slice(1);
+            else if (wa.startsWith('+')) wa = wa.slice(1);
+
+            STATE.currentOnboardWa = wa;
+            document.getElementById("display-active-wa").innerText = wa;
+
+            // Tarik data profil termutakhir langsung secara real-time dari Supabase/GAS
+            const existingPatient = await fetchRealtimePatientData(wa);
+
+            if (existingPatient) {
+                // Pastikan array STATE master_pasien tetap up-to-date
+                const localIdx = STATE.master_pasien.findIndex(p => p.nomor_whatsapp === wa);
+                if (localIdx !== -1) {
+                    STATE.master_pasien[localIdx] = existingPatient;
+                } else {
+                    STATE.master_pasien.push(existingPatient);
+                }
+
+                STATE.currentPatient = existingPatient;
+                STATE.menusUnlocked = true; 
+                document.getElementById("profile-name").innerText = existingPatient.nama_lengkap;
+                document.getElementById("profile-sub").innerText = "No. WA: +" + existingPatient.nomor_whatsapp;
+                
+                document.getElementById("p-reg-name").value = existingPatient.nama_lengkap;
+                document.getElementById("p-reg-age").value = existingPatient.usia || "";
+                document.getElementById("p-reg-identity").value = existingPatient.identity || "";
+                document.getElementById("p-reg-gender").value = existingPatient.jenis_kelamin || "Laki-laki";
+                document.getElementById("p-reg-address").value = existingPatient.alamat || "";
+                document.getElementById("p-reg-kelurahan").value = existingPatient.kelurahan || "Kel. Balangnipa";
+                document.getElementById("p-reg-gps").value = existingPatient.gps || "";
+                document.getElementById("p-reg-gps-display-input").value = existingPatient.gps || "";
+
+                STATE.temp_drugs = existingPatient.jenis_obat ? existingPatient.jenis_obat.split(', ').filter(Boolean) : [];
+                renderDrugsTags();
+                recoverPinPositionFromSavedUrl(existingPatient.gps);
+
+                document.getElementById("onboarding-overlay").style.display = "none";
+                document.getElementById("p-reg-form-panel").classList.add("hidden");
+                
+                const antreanAktif = STATE.antrean_antaran.find(a => a.patient_id === existingPatient.id && (a.status === "Pending" || a.status === "Diterima" || a.status === "Ditolak"));
+                const trackingCard = document.getElementById("p-reg-tracking-panel");
+                
+                if (antreanAktif && trackingCard) {
+                    trackingCard.classList.remove("hidden");
+                    trackingCard.classList.add("flex");
+                    document.getElementById("tracker-patient-id-review").innerText = existingPatient.id;
+                    if (antreanAktif.status === "Pending") {
+                        showTrackerState('reviewing');
+                    } else if (antreanAktif.status === "Diterima") {
+                        showTrackerState('delivery');
+                        document.getElementById("tracker-delivery-driver-name").innerText = `Petugas Antar: ${antreanAktif.courier_name || 'Tim SYIFA'} (+${antreanAktif.courier_wa || ''})`;
+                        document.getElementById("tracker-delivery-eta").innerText = `Estimasi Kedatangan: ${antreanAktif.eta_estimation || '20 Menit'}`;
+                    } else if (antreanAktif.status === "Ditolak") {
+                        showTrackerState('rejected');
+                        document.getElementById("tracker-reject-reason-text").innerText = antreanAktif.rejection_reason || "Data tidak sesuai persyaratan.";
+                    }
+                } else {
+                    document.getElementById("p-reg-form-panel").classList.remove("hidden");
+                }
+
+                // Kirim ping audit log ke webhook GAS
+                syncToGasWebhook("sync_login", existingPatient);
+
+                renderTopNavigation();
+                switchModule('pub-beranda-module');
+                renderActiveChatsList();
+                showCustomDialog('success', 'Selamat Datang Kembali!', `Halo **${existingPatient.nama_lengkap}**. Profil Anda berhasil disinkronkan.`);
+            } else {
+                const tempId = "PAS-" + Math.floor(10000 + Math.random() * 90000);
+                const draftPatient = {
+                    id: tempId,
+                    identity: "",
+                    nama_lengkap: "Pasien Baru (Draf)",
+                    nomor_whatsapp: wa,
+                    usia: "",
+                    jenis_kelamin: "Laki-laki",
+                    kelurahan: "Kel. Balangnipa",
+                    alamat: "",
+                    gps: "",
+                    jenis_obat: "",
+                    saved_by_staff: false,
+                    no_smartphone: false
                 };
+
+                STATE.master_pasien.push(draftPatient);
+                STATE.currentPatient = draftPatient;
+                STATE.menusUnlocked = false; 
+
+                document.getElementById("p-reg-name").value = "";
+                document.getElementById("p-reg-age").value = "";
+                document.getElementById("p-reg-identity").value = "";
+                document.getElementById("p-reg-address").value = "";
+                document.getElementById("p-reg-gps").value = "";
+                document.getElementById("p-reg-gps-display-input").value = "";
+                
+                STATE.temp_drugs = [];
+                renderDrugsTags();
+
+                document.getElementById("onboarding-overlay").style.display = "none";
+                document.getElementById("p-reg-form-panel").classList.remove("hidden");
+                
+                const trackingCard = document.getElementById("p-reg-tracking-panel");
+                if (trackingCard) trackingCard.classList.add("hidden");
+
+                renderTopNavigation();
+                switchModule('pub-beranda-module');
+                renderMasterPatientsTable(); 
+                renderActiveChatsList();
+                showCustomDialog('info', 'Langkah Terakhir Pendaftaran', 'Nomor Anda belum terdaftar. Silakan lengkapi sisa kolom pendaftaran di bawah ini.');
             }
-            if (btnCancel) {
-                if (onCancel) {
-                    btnCancel.classList.remove("hidden");
-                    btnCancel.onclick = function() {
-                        overlay.classList.add("hidden");
-                        overlay.classList.remove("flex");
-                        if (onCancel) onCancel();
-                    };
-                } else btnCancel.classList.add("hidden");
-            }
-            overlay.classList.remove("hidden");
-            overlay.classList.add("flex");
         }
 
         function renderTopNavigation() {
-            const bar = document.getElementById("top-nav-menu-bar");
-            if (!bar) return;
-            bar.innerHTML = "";
+            const navBar = document.getElementById("top-nav-menu-bar");
+            if (!navBar) return;
+            navBar.innerHTML = "";
 
             if (STATE.portal === 'public') {
-                const publicMenu = [
-                    { id: 'pub-beranda-module', label: 'Permohonan Kirim Obat', icon: 'fa-truck-fast' },
-                    { id: 'int-chat-module', label: 'Group Chat SINTA', icon: 'fa-comments-medical' }, 
-                    { id: 'pub-kamus-module', label: 'Panduan Obat', icon: 'fa-book-medical' },
-                    { id: 'pub-layanan-module', label: 'Survei Kepuasan', icon: 'fa-face-smile' }
-                ];
+                // Public Portal Navigation Items
+                const isBerandaActive = STATE.activeModule === 'pub-beranda-module';
+                const tabBeranda = createNavTabElement('pub-beranda-module', 'fa-hospital-user', 'Permohonan SYIFA', isBerandaActive);
+                navBar.appendChild(tabBeranda);
 
-                let allowedMenu = [...publicMenu];
-                if (!STATE.menusUnlocked) {
-                    allowedMenu = [publicMenu[0]]; 
-                }
+                const isKamusActive = STATE.activeModule === 'pub-kamus-module';
+                const tabKamus = createNavTabElement('pub-kamus-module', 'fa-book-medical', 'Panduan SINTA', isKamusActive);
+                navBar.appendChild(tabKamus);
 
-                const group = document.createElement("div");
-                group.className = "nav-group-container";
-                group.innerHTML = `<span class="nav-group-label">Pasien</span>`;
-                allowedMenu.forEach((m) => {
-                    const btn = document.createElement("button");
-                    const isActive = STATE.activeModule === m.id;
-                    btn.className = "nav-tab" + (isActive ? " active" : "");
-                    btn.innerHTML = `<i class="fa-solid ${m.icon}"></i> ${m.label}`;
-                    btn.setAttribute('onclick', `activateNavTab(this, '${m.id}')`);
-                    group.appendChild(btn);
-                });
-                bar.appendChild(group);
+                const isLayananActive = STATE.activeModule === 'pub-layanan-module';
+                const tabLayanan = createNavTabElement('pub-layanan-module', 'fa-headset', 'Aduan & Kepuasan', isLayananActive);
+                navBar.appendChild(tabLayanan);
+
+                const isChatActive = STATE.activeModule === 'int-chat-module';
+                const tabChat = createNavTabElement('int-chat-module', 'fa-comments-medical', 'Chat SINTA', isChatActive);
+                navBar.appendChild(tabChat);
+
             } else {
-                const group1 = document.createElement("div");
-                group1.className = "nav-group-container";
-                group1.innerHTML = `<span class="nav-group-label">Pemantauan</span>`;
+                // Internal Staff Portal Navigation Items
+                const isDeliveryActive = STATE.activeModule === 'int-delivery-parent-module';
+                const tabDelivery = createNavTabElement('int-delivery-parent-module', 'fa-truck-ramp-box', 'Antrean & Resep', isDeliveryActive, STATE.hasNewDelivery);
+                navBar.appendChild(tabDelivery);
 
-                const menuG1 = [
-                    { id: 'int-delivery-parent-module', label: 'Permintaan Antaran', icon: 'fa-truck-fast' },
-                    { id: 'int-chat-module', label: 'Ruang Obrolan Pasien', icon: 'fa-comment-medical' },
-                    { id: 'int-dashboard-module', label: 'Mutu & Statistik', icon: 'fa-chart-pie' }
-                ];
+                const isChatActive = STATE.activeModule === 'int-chat-module';
+                const tabChat = createNavTabElement('int-chat-module', 'fa-comments-medical', 'Monitor SINTA', isChatActive, STATE.hasNewChat);
+                navBar.appendChild(tabChat);
 
-                menuG1.forEach((m) => {
-                    const btn = document.createElement("button");
-                    const isActive = STATE.activeModule === m.id;
-                    btn.className = "nav-tab" + (isActive ? " active" : "");
-                    btn.innerHTML = `<i class="fa-solid ${m.icon}"></i> ${m.label}`;
-                    btn.setAttribute('onclick', `activateNavTab(this, '${m.id}')`);
-                    group1.appendChild(btn);
-                });
-                bar.appendChild(group1);
+                const isDashboardActive = STATE.activeModule === 'int-dashboard-module';
+                const tabDashboard = createNavTabElement('int-dashboard-module', 'fa-chart-line', 'Indikator Mutu', isDashboardActive);
+                navBar.appendChild(tabDashboard);
 
-                const group2 = document.createElement("div");
-                group2.className = "nav-group-container";
-                group2.innerHTML = `<span class="nav-group-label">Data</span>`;
-                const btnData = document.createElement("button");
-                btnData.className = "nav-tab" + (STATE.activeModule === 'int-master-module' ? " active" : "");
-                btnData.innerHTML = `<i class="fa-solid fa-folder-open"></i> Data Master`;
-                btnData.setAttribute('onclick', "activateNavTab(this, 'int-master-module')");
-                group2.appendChild(btnData);
-                bar.appendChild(group2);
+                const isMasterActive = STATE.activeModule === 'int-master-module';
+                const tabMaster = createNavTabElement('int-master-module', 'fa-folder-open', 'Master Data', isMasterActive);
+                navBar.appendChild(tabMaster);
 
-                const group3 = document.createElement("div");
-                group3.className = "nav-group-container";
-                group3.innerHTML = `<span class="nav-group-label">Sistem</span>`;
-                const btnSetting = document.createElement("button");
-                btnSetting.className = "nav-tab" + (STATE.activeModule === 'int-settings-module' ? " active" : "");
-                btnSetting.innerHTML = `<i class="fa-solid fa-gears"></i> Aturan Pesan`;
-                btnSetting.setAttribute('onclick', "activateNavTab(this, 'int-settings-module')");
-                group3.appendChild(btnSetting);
-                bar.appendChild(group3);
+                const isSettingsActive = STATE.activeModule === 'int-settings-module';
+                const tabSettings = createNavTabElement('int-settings-module', 'fa-sliders', 'Pengaturan', isSettingsActive);
+                navBar.appendChild(tabSettings);
             }
+        }
+
+        function createNavTabElement(moduleId, iconClass, label, isActive, hasNotification = false) {
+            const btn = document.createElement("button");
+            btn.className = `nav-tab ${isActive ? 'active' : ''} relative`;
+            btn.onclick = () => activateNavTab(btn, moduleId);
+            
+            let notificationBadge = "";
+            if (hasNotification) {
+                notificationBadge = `<span class="absolute top-1.5 right-1.5 flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span></span>`;
+            }
+
+            btn.innerHTML = `<i class="fa-solid ${iconClass}"></i> <span>${label}</span>${notificationBadge}`;
+            return btn;
         }
 
         function activateNavTab(element, moduleId) {
@@ -2683,6 +3018,17 @@
 
         function switchModule(moduleId) {
             STATE.activeModule = moduleId;
+            
+            // Turn off notification dots when corresponding tabs are activated
+            if (moduleId === 'int-delivery-parent-module') {
+                STATE.hasNewDelivery = false;
+                renderTopNavigation();
+            }
+            if (moduleId === 'int-chat-module') {
+                STATE.hasNewChat = false;
+                renderTopNavigation();
+            }
+
             document.querySelectorAll(".module-content-panel").forEach(p => p.classList.add("hidden"));
             const activePanel = document.getElementById(moduleId);
             if (activePanel) activePanel.classList.remove("hidden");
@@ -2873,6 +3219,25 @@
                 eta_estimation: globalEstimation
             });
 
+            // Sinkronisasi data pasien secara real-time ke Google Sheets (Tab DataPasien)
+            syncToGasWebhook("save_patient", {
+                id: patient.id,
+                identity: patient.identity,
+                nama_lengkap: patient.nama_lengkap,
+                nomor_whatsapp: patient.nomor_whatsapp,
+                usia: patient.usia,
+                jenis_kelamin: patient.jenis_kelamin,
+                kelurahan: patient.kelurahan,
+                alamat: patient.alamat,
+                gps: patient.gps,
+                jenis_obat: drugsString,
+                delivery_id: antaranId,
+                status: "Pending"
+            });
+
+            // Trigger notification dot on delivery panel
+            STATE.hasNewDelivery = true;
+
             syncPatientMedsToReminders(patient.id, drugsString);
             syncAllPortals(); 
 
@@ -2906,6 +3271,10 @@
                 chatObj.isBotActive = true; 
                 chatObj.deliveryId = antaranId;
             }
+            
+            // Trigger notification dot on Chat panel
+            STATE.hasNewChat = true;
+            renderTopNavigation();
             renderActiveChatsList();
 
             if (STATE.portal === 'public') {
@@ -2949,8 +3318,7 @@
                         obat_id: drugName,
                         aturan_pakai: "1x sehari 1 tablet sesudah makan",
                         tanggal_tebus: new Date().toISOString().split('T')[0],
-                        status_edukasi: "Terjadwal_Otomatis",
-                        jam_konsumsi: assignedHour
+                        status_edukasi: "Draft_Review",                        jam_konsumsi: assignedHour
                     });
                 }
             });
@@ -2979,7 +3347,7 @@
                     `;
                 } else if (ant.status === "Diterima") {
                     const assignedCourierName = ant.courier_name || "Petugas Antar SYIFA";
-                    statusBadge = `<span class="inline-flex items-center gap-1 text-sky-400 bg-sky-500/10 border border-sky-500/25 px-2 py-0.5 rounded font-bold animate-pulse" title="Kurir: ${assignedCourierName}"><i class="fa-solid fa-truck"></i> Kurir Jalan</span>`;
+                    statusBadge = `<span class="inline-flex items-center gap-1 text-sky-400 bg-sky-500/10 border border-sky-500/25 px-2 py-0.5 rounded font-bold animate-pulse" title="Petugas Antar: ${assignedCourierName}"><i class="fa-solid fa-truck"></i> Petugas Antar Jalan</span>`;
                     
                     if (ant.no_smartphone) {
                         actionArea = `
@@ -3049,7 +3417,7 @@
                     </td>
                     <td class="p-3">
                         ${statusBadge}
-                        ${ant.courier_name ? `<span class="block text-[9px] text-sky-400 mt-1">Kurir: <b>${ant.courier_name}</b></span>` : ""}
+                        ${ant.courier_name ? `<span class="block text-[9px] text-sky-400 mt-1">Petugas Antar: <b>${ant.courier_name}</b></span>` : ""}
                     </td>
                     <td class="p-3">${selectDropdownHtml}</td>
                     <td class="p-3">${slaBadge}</td>
@@ -3512,6 +3880,189 @@
             renderDeliveryTable();
         }
 
+        function processCsvUpload() {
+            const fileInput = document.getElementById("csv-file-input");
+            if (!fileInput || !fileInput.files.length) {
+                showCustomDialog('danger', 'File Belum Dipilih', 'Silakan pilih berkas Excel (.xlsx, .xls) atau CSV Kemenkes terlebih dahulu.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Membaca Sheet pertama dari workbook
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Membaca sebagai grid array 2 dimensi untuk mengamankan data yang berantakan
+                    const grid = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    if (!grid || grid.length === 0) {
+                        showCustomDialog('danger', 'Data Kosong', 'Tidak ada baris data yang terbaca di dalam berkas.');
+                        return;
+                    }
+
+                    // Detektor Fuzzy Header: Memindai 15 baris teratas untuk mendeteksi judul kolom otomatis
+                    let headerRowIdx = -1;
+                    let colMap = { code: 0, name: 1, category: 2, education: 3, sideEffect: 4 };
+
+                    for (let r = 0; r < Math.min(15, grid.length); r++) {
+                        const row = grid[r];
+                        if (!row || !Array.isArray(row)) continue;
+                        
+                        let foundCode = -1;
+                        let foundName = -1;
+                        
+                        for (let c = 0; c < row.length; c++) {
+                            const val = String(row[c] || '').toLowerCase().trim();
+                            if (val.includes('kode') || val.includes('code') || val === 'id') {
+                                foundCode = c;
+                            }
+                            if (val.includes('nama') || val.includes('name') || val === 'obat') {
+                                foundName = c;
+                            }
+                        }
+
+                        // Jika dalam satu baris ditemukan kolom Kode dan Nama, kunci sebagai baris Header Utama!
+                        if (foundCode !== -1 && foundName !== -1) {
+                            headerRowIdx = r;
+                            colMap.code = foundCode;
+                            colMap.name = foundName;
+                            
+                            // Deteksi sisa kolom lainnya secara otomatis
+                            for (let c = 0; c < row.length; c++) {
+                                if (c === foundCode || c === foundName) continue;
+                                const val = String(row[c] || '').toLowerCase().trim();
+                                if (val.includes('kategori') || val.includes('golongan') || val.includes('jenis') || val.includes('terapi')) {
+                                    colMap.category = c;
+                                } else if (val.includes('edukasi') || val.includes('aturan') || val.includes('pakai') || val.includes('minum') || val.includes('instruksi')) {
+                                    colMap.education = c;
+                                } else if (val.includes('efek') || val.includes('samping') || val.includes('side')) {
+                                    colMap.sideEffect = c;
+                                }
+                            }
+                            break;
+                        }
+                    }
+
+                    // Jika tidak ditemukan header otomatis, default membaca dari baris pertama (indeks 0)
+                    const startRowIdx = (headerRowIdx !== -1) ? headerRowIdx + 1 : 1;
+                    let count = 0;
+
+                    for (let i = startRowIdx; i < grid.length; i++) {
+                        const row = grid[i];
+                        if (!row || row.length === 0) continue;
+
+                        let code = String(row[colMap.code] !== undefined && row[colMap.code] !== null ? row[colMap.code] : '').trim();
+                        let name = String(row[colMap.name] !== undefined && row[colMap.name] !== null ? row[colMap.name] : '').trim();
+                        let category = String(row[colMap.category] !== undefined && row[colMap.category] !== null ? row[colMap.category] : 'Umum').trim();
+                        let education = String(row[colMap.education] !== undefined && row[colMap.education] !== null ? row[colMap.education] : 'Diminum sesuai aturan pakai.').trim();
+                        let sideEffect = String(row[colMap.sideEffect] !== undefined && row[colMap.sideEffect] !== null ? row[colMap.sideEffect] : 'Sakit kepala ringan, kram perut').trim();
+
+                        // FILTER PEMBERSIH KACAU (IMAGE_FB1565.PNG): Lewati baris kosong, baris sampah, atau teks deskripsi raksasa
+                        if (!name || name.length < 2 || name.length > 100) continue;
+
+                        const lowerName = name.toLowerCase();
+                        if (lowerName.includes('nama obat') || lowerName.includes('nama generik') || lowerName.includes('kelas terapi') || lowerName.includes('halaman') || lowerName.includes('sub kelas')) {
+                            continue;
+                        }
+
+                        // Deteksi kata menumpuk tanpa spasi yang terlalu panjang (corrupt text)
+                        if (name.length > 25 && !name.includes(' ') && !name.includes('-') && !name.includes('/')) {
+                            continue;
+                        }
+
+                        // Auto-generate kode jika kolom kode kosong, berisi nomor urut biasa, atau teks 'no'
+                        if (!code || /^\d+$/.test(code) || code.toLowerCase() === 'no' || code.toLowerCase() === 'id') {
+                            code = "OBT-KMK-" + String(101 + count).padStart(3, '0');
+                        }
+
+                        const existingIdx = STATE.master_obat.findIndex(d => d.kode_obat === code || d.nama_obat.toLowerCase() === name.toLowerCase());
+                        if (existingIdx !== -1) {
+                            STATE.master_obat[existingIdx].nama_obat = name;
+                            STATE.master_obat[existingIdx].kategori_obat = category;
+                            STATE.master_obat[existingIdx].teks_edukasi = education;
+                            STATE.master_obat[existingIdx].efek_samping_utama = sideEffect;
+                        } else {
+                            STATE.master_obat.push({
+                                id: "d_imported_" + Date.now() + "_" + i,
+                                kode_obat: code,
+                                nama_obat: name,
+                                kategori_obat: category,
+                                teks_edukasi: education,
+                                efek_samping_utama: sideEffect
+                            });
+                        }
+                        count++;
+                    }
+
+                    // Menampilkan tabel preview hasil impor (5 baris terakhir)
+                    const previewTbody = document.getElementById("csv-preview-tbody");
+                    const previewContainer = document.getElementById("csv-preview-table-container");
+                    if (previewTbody && previewContainer) {
+                        previewTbody.innerHTML = "";
+                        STATE.master_obat.slice(-5).forEach(d => {
+                            const tr = document.createElement("tr");
+                            tr.className = "border-b border-white/5 text-xs";
+                            tr.innerHTML = `
+                                <td class="p-2 font-mono text-cyan-400">${d.kode_obat}</td>
+                                <td class="p-2 font-bold text-white">${d.nama_obat}</td>
+                                <td class="p-2 text-slate-400">${d.kategori_obat}</td>
+                                <td class="p-2 truncate max-w-[150px] text-slate-400">${d.teks_edukasi}</td>
+                            `;
+                            previewTbody.appendChild(tr);
+                        });
+                        previewContainer.classList.remove("hidden");
+                    }
+
+                    // Sinkronisasi penuh secara instan ke seluruh portal tabel yang membutuhkan
+                    renderLibraryCards();
+                    renderDrugDictionaryTable();
+                    syncAllPortals(); 
+                    
+                    showCustomDialog('success', 'Import Berhasil', `Berhasil mengimpor dan menyinkronkan **${count}** data obat secara real-time.`);
+                    fileInput.value = "";
+                } catch (err) {
+                    console.error("Gagal memproses berkas:", err);
+                    showCustomDialog('danger', 'Gagal Memproses File', 'Gagal memparsing berkas Excel/CSV. Pastikan file tidak rusak atau terproteksi sandi.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadCsvTemplate() {
+            try {
+                const headers = [["Kode", "Nama", "Kategori", "Edukasi", "EfekSamping"]];
+                const sampleRows = [
+                    ["OBT-101", "Glimepiride 2mg", "Antidiabetes", "Wajib diminum segera sebelum atau saat suapan sarapan pagi pertama.", "Keringat dingin, gemetar, lapar."],
+                    ["OBT-102", "Captopril 25mg", "Antihipertensi", "Diminum saat perut kosong (1 jam sebelum atau 2 jam sesudah makan).", "Batuk kering ringan."],
+                    ["OBT-103", "Ibuprofen 400mg", "Analgetik", "Wajib diminum sesudah makan untuk meminimalisir iritasi lambung.", "Nyeri ulu hati, mual."]
+                ];
+                
+                const worksheetData = headers.concat(sampleRows);
+                const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Template Obat");
+                
+                // Memicu pengunduhan file Excel XLSX asli yang rapi
+                XLSX.writeFile(workbook, "Template_Excel_Obat_SINTA.xlsx");
+                
+                showCustomDialog('success', 'Template Diunduh', 'Berkas Excel template resmi berhasil diunduh. Silakan isi data obat Anda di file tersebut lalu unggah kembali.');
+            } catch (err) {
+                console.error("Gagal membuat Excel template:", err);
+                const csvHeaders = "Kode,Nama,Kategori,Edukasi,EfekSamping\n";
+                const csvRows = "OBT-101,Glimepiride 2mg,Antidiabetes,Wajib diminum segera sebelum atau saat suapan sarapan pagi pertama.,Keringat dingin\n";
+                const blob = new Blob([csvHeaders + csvRows], { type: "text/csv;charset=utf-8;" });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "Template_Obat_SINTA_Fallback.csv";
+                link.click();
+            }
+        }
+
         function renderLibraryCards() {
             const container = document.getElementById("library-cards-container");
             if (!container) return;
@@ -3603,6 +4154,8 @@
             const name = document.getElementById("crud-drug-name").value.trim();
             if (!code || !name) return;
 
+            let finalObj = {};
+
             if (STATE.editingDrugId) {
                 const idx = STATE.master_obat.findIndex(o => o.id === STATE.editingDrugId);
                 if (idx !== -1) {
@@ -3611,19 +4164,25 @@
                     STATE.master_obat[idx].kategori_obat = document.getElementById("crud-drug-category").value;
                     STATE.master_obat[idx].teks_edukasi = document.getElementById("crud-drug-education").value;
                     STATE.master_obat[idx].efek_samping_utama = document.getElementById("crud-drug-side").value;
+                    finalObj = STATE.master_obat[idx];
                 }
                 showCustomDialog('success', 'Obat Diperbarui', `Sediaan obat **${name}** berhasil diperbarui.`);
             } else {
-                STATE.master_obat.push({ 
+                finalObj = { 
                     id: "d_" + Date.now(), 
                     kode_obat: code, 
                     nama_obat: name, 
                     kategori_obat: document.getElementById("crud-drug-category").value, 
                     teks_edukasi: document.getElementById("crud-drug-education").value, 
                     efek_samping_utama: document.getElementById("crud-drug-side").value 
-                });
+                };
+                STATE.master_obat.push(finalObj);
                 showCustomDialog('success', 'Obat Ditambahkan', `Sediaan obat **${name}** berhasil disimpan di kamus.`);
             }
+
+            // Sync sediaan obat terbaru langsung ke webhook GAS (Tab KamusObat)
+            syncToGasWebhook("save_drug", finalObj);
+
             renderLibraryCards(); 
             renderDrugDictionaryTable(); 
             resetDrugForm();
@@ -3637,23 +4196,6 @@
             document.getElementById("crud-drug-category").value = "Antihipertensi";
             document.getElementById("crud-drug-education").value = "";
             document.getElementById("crud-drug-side").value = "";
-        }
-
-        function selectRatingScore(val) {
-            STATE.activeRating = val;
-            showCustomDialog('info', 'Rating Dipilih', `Anda memberikan rating bintang ${val}.`);
-        }
-
-        function submitSurvey() {
-            const trust = parseFloat(document.getElementById("survey-trust").value);
-            const comm = parseFloat(document.getElementById("survey-comm").value);
-            if (isNaN(trust) || isNaN(comm) || trust < 1 || trust > 100 || comm < 1 || comm > 10) return;
-
-            STATE.kpi.satisfaction = Math.round((STATE.kpi.satisfaction + (STATE.activeRating * 20)) / 2);
-            STATE.kpi.trustIndex = Math.round((STATE.kpi.trustIndex + trust) / 2);
-            STATE.kpi.commQuality = Math.round(((STATE.kpi.commQuality + comm) / 2) * 10) / 10;
-            renderKpiCards();
-            showCustomDialog('success', 'Terima Kasih', 'Survei kepuasan berhasil disimpan.');
         }
 
         function renderActiveChatsList() {
@@ -3756,83 +4298,6 @@
             });
         }
 
-        function handleBotResponse(chatObj, userInputText) {
-            const cleanInput = userInputText.trim().toUpperCase();
-            const p = STATE.master_pasien.find(x => x.nomor_whatsapp === chatObj.patientWa);
-            if (!p) return;
-
-            if (cleanInput === 'A') {
-                // Skenario A: PIO Informasi Cara Minum Obat Terintegrasi
-                let drugDetailsHtml = "";
-                if (p.jenis_obat) {
-                    const drugsList = p.jenis_obat.split(', ').filter(Boolean);
-                    drugsList.forEach(medName => {
-                        // Cari detail di kamus master obat
-                        const matchObat = STATE.master_obat.find(o => o.nama_obat.toLowerCase().includes(medName.toLowerCase()));
-                        if (matchObat) {
-                            drugDetailsHtml += `💊 <b>${matchObat.nama_obat}</b>:<br>👉 ${matchObat.teks_edukasi}<br>⚠️ <i>Efek Samping: ${matchObat.efek_samping_utama}</i><br><br>`;
-                        } else {
-                            drugDetailsHtml += `💊 <b>${medName}</b>:<br>👉 Diminum sesuai instruksi etiket obat. Harap tanyakan apoteker jika ragu.<br><br>`;
-                        }
-                    });
-                } else {
-                    drugDetailsHtml = "Belum ada riwayat daftar obat aktif yang tercatat untuk Anda di sistem asuhan.";
-                }
-
-                const responseText = `Ibu/Bapak <b>${p.nama_lengkap}</b>, berikut adalah petunjuk klinis penggunaan obat Anda agar memberikan efek terapi maksimal:<br><br>${drugDetailsHtml}Semoga informasi ini bermanfaat. Ketik <b>[Menu]</b> untuk kembali ke pilihan utama.`;
-                
-                chatObj.messages.push({ sender: 'bot', text: responseText, time: getCurrentWitaTime() });
-                STATE.kpi.educationCount++;
-
-            } else if (cleanInput === 'B') {
-                // Skenario B: Tampilkan Pengingat Konsumsi Harian
-                const schedules = STATE.transaksi_resep_pasien.filter(r => r.pasien_id === p.id);
-                let scheduleListHtml = "";
-
-                if (schedules.length > 0) {
-                    schedules.forEach(s => {
-                        scheduleListHtml += `⏰ <b>${s.jam_konsumsi} WITA</b> - ${s.obat_id} (${s.aturan_pakai})<br>`;
-                    });
-                } else {
-                    scheduleListHtml = "Belum ada jadwal alarm aktif yang terpasang oleh petugas apotek untuk Anda saat ini.<br>";
-                }
-
-                const responseText = `Berikut adalah jadwal alarm kepatuhan minum obat aktif Anda yang telah disinkronkan oleh sistem SINTA:<br><br>${scheduleListHtml}<br>Asisten SINTA akan mengirimkan alarm pengingat harian otomatis 30 menit sebelum waktu konsumsi tiba melalui grup ini. Ketik <b>[Menu]</b> untuk kembali.`;
-                
-                chatObj.messages.push({ sender: 'bot', text: responseText, time: getCurrentWitaTime() });
-
-            } else if (cleanInput === 'C') {
-                // Skenario C: Eskalasi Langsung ke Apoteker Senior
-                chatObj.isBotActive = false; // Matikan bot otomatis, alihkan ke petugas apotek
-                const responseText = parseMessageTemplate('TEMPLATE_BUTUH_APOTEKER', p);
-                
-                chatObj.messages.push({ sender: 'bot', text: responseText, time: getCurrentWitaTime() });
-
-            } else {
-                // Default / Menu Utama
-                const responseText = `Ibu/Bapak <b>${p.nama_lengkap}</b>, silakan ketik pilihan Anda untuk memulai konsultasi obat:<br><br>👉 Ketik <b>[A]</b> Cara Minum Obat Saya Yang Benar (Aturan Pakai)<br>👉 Ketik <b>[B]</b> Lihat Jadwal Pengingat Minum Obat Saya<br>👉 Ketik <b>[C]</b> Hubungkan Saya dengan Apoteker Senior (PIO Langsung)`;
-                
-                chatObj.messages.push({ sender: 'bot', text: responseText, time: getCurrentWitaTime() });
-            }
-        }
-
-        function updateActiveChatAlarm(val) {
-            if (STATE.selectedChatSessionIndex === null) return;
-            const c = STATE.chats[STATE.selectedChatSessionIndex];
-            c.scheduledTime = val;
-            c.lastTriggeredTime = null; 
-            showCustomDialog('success', 'Jam Pengingat Diatur', `Asisten SINTA otomatis dijadwalkan mengirim pesan asuhan untuk **${c.patientName}** pada pukul **${val} WITA**.`);
-        }
-
-        function archiveActiveChatFromHeader() {
-            if (STATE.selectedChatSessionIndex === null) return;
-            archiveChatSessionPrompt(STATE.selectedChatSessionIndex);
-        }
-
-        function handlePharmacistReplyKeyPress(e) {
-            if (e.key === 'Enter') submitPharmacistReply();
-        }
-
         function submitPharmacistReply() {
             const input = document.getElementById("pharmacist-reply-input");
             if (!input) return;
@@ -3849,13 +4314,49 @@
             });
             input.value = "";
 
-            if (!isPharmacist && c.isBotActive) {
-                // Jika pengirim adalah pasien dan asisten bot otomatis masih aktif
-                setTimeout(() => {
-                    handleBotResponse(c, text);
-                    selectChatSession(STATE.selectedChatSessionIndex);
-                    renderKonsultasiLogs();
-                }, 800);
+            if (!isPharmacist) {
+                // Sisi Pasien Mengirim Balasan
+                STATE.hasNewChat = true;
+                renderTopNavigation();
+
+                const cleanText = text.trim().toUpperCase();
+                
+                // MEMECAHKAN MASALAH CHATBOT LOOP: Jika bot sebelumnya mati (karena dialihkan ke apoteker)
+                // tetapi pasien mengetik pilihan menu 'A', 'B', 'C', atau 'MENU', hidupkan kembali asisten SINTA otomatis!
+                if (!c.isBotActive && (cleanText === 'MENU' || cleanText === '[MENU]' || cleanText === 'A' || cleanText === 'B' || cleanText === 'C')) {
+                    c.isBotActive = true;
+                    c.messages.push({
+                        sender: 'bot',
+                        text: `🔄 <b>[Asisten SINTA Kembali Aktif]</b><br>Halo Ibu/Bapak <b>${c.patientName}</b>, asisten otomatis SINTA kembali aktif melayani kebutuhan Anda secara mandiri di grup ini.`,
+                        time: getCurrentWitaTime()
+                    });
+                }
+
+                if (c.isBotActive) {
+                    setTimeout(() => {
+                        handleBotResponse(c, text);
+                        selectChatSession(STATE.selectedChatSessionIndex);
+                        renderKonsultasiLogs();
+
+                        // Simpan riwayat log chat terkini ke master Google Sheets secara real-time
+                        const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
+                        if (p) {
+                            syncToGasWebhook("save_patient", p);
+                        }
+                    }, 800);
+                } else {
+                    // Masih dalam mode obrolan staf, sinkronisasi pesan baru ke tab MASTER_PASIEN
+                    const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
+                    if (p) {
+                        syncToGasWebhook("save_patient", p);
+                    }
+                }
+            } else {
+                // Petugas apotek membalas chat pasien, langsung sinkronisasikan riwayat chat terbaru ke tab MASTER_PASIEN
+                const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
+                if (p) {
+                    syncToGasWebhook("save_patient", p);
+                }
             }
 
             selectChatSession(STATE.selectedChatSessionIndex);
@@ -3898,7 +4399,7 @@
 
                 let statusKurir = "";
                 if (ant.status === "Pending") {
-                    statusKurir = `<span class="text-amber-400 font-semibold">Menunggu Kurir</span>`;
+                    statusKurir = `<span class="text-amber-400 font-semibold">Menunggu Petugas Antar</span>`;
                 } else if (ant.status === "Diterima") {
                     statusKurir = `<span class="text-sky-400 font-semibold">Dalam Perjalanan</span>`;
                 } else if (ant.status === "Ditolak") {
@@ -4209,20 +4710,77 @@
                 const p = STATE.master_pasien.find(x => x.id === r.pasien_id);
                 const tr = document.createElement("tr");
                 tr.className = "hover:bg-white/[0.015] border-b border-white/5 transition-colors duration-150 text-xs";
+                
+                let statusBadge = "";
+                let activateBtn = "";
+                
+                if (r.status_edukasi === "Draft_Review") {
+                    statusBadge = '<span class="inline-flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold uppercase"><i class="fa-solid fa-spinner animate-pulse"></i> Menunggu Verifikasi</span>';
+                    activateBtn = `<button class="btn btn-primary py-1 px-2 text-[10px] bg-gradient-to-r from-emerald-500 to-teal-600 border-none font-bold text-white shadow-sm" onclick="activateMedicationAlarm('${r.id}')"><i class="fa-solid fa-toggle-on"></i> Aktifkan Alarm</button>`;
+                } else {
+                    statusBadge = '<span class="inline-flex items-center gap-1 text-emerald-400 bg-emerald-500/20 border border-emerald-500/20 px-2 py-0.5 rounded font-bold uppercase"><i class="fa-solid fa-circle-check"></i> Alarm Aktif</span>';
+                    activateBtn = `<button class="btn btn-glass py-1 px-2 text-[10px] text-emerald-400 border-emerald-500/25 font-bold" onclick="triggerMedicationReminderSimulation('${r.id}')"><i class="fa-solid fa-bell"></i> Notif</button>`;
+                }
+
                 tr.innerHTML = `
                     <td class="p-3 text-white font-bold">${p ? p.nama_lengkap : '-'}</td>
                     <td class="p-3">${r.obat_id}<div class="text-[10px] text-slate-400 mt-0.5">${r.aturan_pakai}</div></td>
                     <td class="p-3 text-cyan-400 font-bold"><i class="fa-regular fa-clock"></i> ${r.jam_konsumsi || '08:00'}</td>
-                    <td class="p-3 text-amber-400 font-bold"><i class="fa-solid fa-bell"></i> Terjadwal</td>
+                    <td class="p-3">${statusBadge}</td>
                     <td class="p-3">
                         <div class="flex gap-1.5 justify-end">
                             <button class="btn btn-glass py-1 px-2 text-[10px] text-amber-400 border-amber-500/25 font-bold" onclick="editRecipe('${r.id}')"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
                             <button class="btn btn-glass py-1 px-2 text-[10px] text-rose-400 border-rose-500/25 font-bold" onclick="deleteRecipe('${r.id}')"><i class="fa-solid fa-trash"></i> Hapus</button>
-                            <button class="btn btn-primary py-1 px-2 text-[10px] bg-gradient-to-r from-emerald-500 to-emerald-600 border-none font-bold text-white shadow-sm" onclick="triggerMedicationReminderSimulation('${r.id}')"><i class="fa-solid fa-bell"></i> Notif</button>
+                            ${activateBtn}
                         </div>
                     </td>`;
                 tbody.appendChild(tr);
             });
+        }
+
+        function activateMedicationAlarm(recipeId) {
+            const recipe = STATE.transaksi_resep_pasien.find(r => r.id === recipeId);
+            if (!recipe) return;
+            const p = STATE.master_pasien.find(x => x.id === recipe.pasien_id);
+            if (!p) return;
+
+            recipe.status_edukasi = "Terjadwal_Otomatis";
+            
+            // Format Pesan Instan yang langsung meluncur ke chat asisten SINTA pasien
+            const welcomeText = `🔔 <b>[ALARM KEPATUHAN AKTIF]</b><br>Halo Ibu/Bapak <b>${p.nama_lengkap}</b>.<br><br>Apoteker Jaga baru saja menyelaraskan dan mengaktifkan jadwal asuhan minum obat otomatis Anda:<br>💊 <b>Obat:</b> ${recipe.obat_id}<br>📋 <b>Aturan Pakai:</b> ${recipe.aturan_pakai}<br>⏰ <b>Jam Alarm:</b> ${recipe.jam_konsumsi} WITA<br><br>Asisten SINTA akan otomatis memantau dan mengirimkan pengingat tepat waktu demi mempercepat kesembuhan Anda!`;
+
+            let chatObj = STATE.chats.find(c => c.patientWa === p.nomor_whatsapp);
+            if (!chatObj) {
+                chatObj = {
+                    patientName: p.nama_lengkap,
+                    patientWa: p.nomor_whatsapp,
+                    isBotActive: true,
+                    isSurveyPreEscalatePending: false,
+                    isAwaitingDeliveryConfirmation: false,
+                    isAwaitingDeliverySurvey: false,
+                    deliveryId: null,
+                    scheduledTime: recipe.jam_konsumsi,
+                    lastTriggeredTime: null,
+                    lastIncomingTime: Date.now(),
+                    messages: [{ sender: 'bot', text: welcomeText, time: getCurrentWitaTime() }]
+                };
+                STATE.chats.unshift(chatObj);
+            } else {
+                chatObj.messages.push({ sender: 'bot', text: welcomeText, time: getCurrentWitaTime() });
+                chatObj.isBotActive = true;
+                chatObj.scheduledTime = recipe.jam_konsumsi;
+            }
+
+            // Memunculkan pesan interaktif secara real-time di UI pasien jika sedang masuk akun yang sama
+            if (STATE.currentPatient && p.nomor_whatsapp === STATE.currentPatient.nomor_whatsapp) {
+                showCustomDialog('success', 'Alarm Pengingat Aktif!', `Apoteker RSUD Sinjai telah menetapkan alarm kepatuhan minum obat baru: <b>${recipe.obat_id}</b>.<br>Silakan periksa pesan panduan detail pada menu <b>Chat SINTA</b>.`);
+            }
+
+            // Sync langsung data pasien yang terupdate (termasuk riwayat chat terbaru dengan pesan alarm) ke Google Sheets MASTER_PASIEN
+            syncToGasWebhook("save_patient", p);
+
+            syncAllPortals();
+            showCustomDialog('success', 'Alarm Otomatis Aktif', `Jadwal asuhan untuk obat **${recipe.obat_id}** milik **${p.nama_lengkap}** telah diaktifkan, otomatis terkirim langsung ke obrolan SINTA pasien, dan disinkronkan ke Google Sheets.`);
         }
 
         function saveSystemConfigurations() {
@@ -4293,36 +4851,32 @@
         function addComplaintWaNumber() {
             let num = document.getElementById("wa-new-complaint-number").value.trim();
             if (!num) return;
+            if (num.startsWith('0')) num = '62' + num.slice(1);
+            else if (num.startsWith('+')) num = num.slice(1);
             STATE.dinamik_pengaduan_wa.push(num);
             renderComplaintWaConfigList();
             renderPublicAduanList();
             document.getElementById("wa-new-complaint-number").value = "";
-        }
-
-        function saveRobotWaConfig() {
-            let num = document.getElementById("wa-master-robot-number").value.trim();
-            if (!num) return;
-            STATE.dinamik_robot_wa = num;
-            showCustomDialog('success', 'Kontak Terupdate', `Nomor Dinas: +${num}`);
+            showCustomDialog('success', 'Nomor Ditambahkan', `Nomor pengaduan +${num} berhasil ditambahkan.`);
         }
 
         function renderPublicAduanList() {
             const container = document.getElementById("public-aduan-list");
             if (!container) return;
             container.innerHTML = "";
+            if (STATE.dinamik_pengaduan_wa.length === 0) {
+                container.innerHTML = `<p class="text-[10px] text-rose-400 italic">Tidak ada line WhatsApp pengaduan aktif.</p>`;
+                return;
+            }
             STATE.dinamik_pengaduan_wa.forEach((num, idx) => {
-                const div = document.createElement("div");
-                div.className = "flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl text-xs";
-                div.innerHTML = `
-                    <div>
-                        <strong class="text-white block">Line Pengaduan ${idx + 1}</strong>
-                        <span class="text-[10px] text-slate-400">+${num}</span>
-                    </div>
-                    <button onclick="sendComplaintDirectToWhatsApp('${num}')" class="btn bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-extrabold px-3 py-1.5 text-[10px] rounded-lg shadow-md border-none flex items-center gap-1 transition-all">
-                        <i class="fa-brands fa-whatsapp text-white text-xs"></i> Hubungi WA
-                    </button>
+                const btn = document.createElement("button");
+                btn.className = "btn btn-glass w-full py-2 text-[10.5px] font-bold text-rose-400 border-rose-500/20 hover:bg-rose-500/10 flex justify-between items-center px-4 mb-1.5";
+                btn.onclick = () => sendComplaintDirectToWhatsApp(num);
+                btn.innerHTML = `
+                    <span><i class="fa-solid fa-headset mr-1.5"></i> Hubungi Line Pengaduan ${idx + 1}</span>
+                    <span class="font-mono">+${num} <i class="fa-brands fa-whatsapp text-emerald-400 ml-1.5"></i></span>
                 `;
-                container.appendChild(div);
+                container.appendChild(btn);
             });
         }
 
@@ -4331,45 +4885,172 @@
             const totalResep = STATE.transaksi_resep_pasien.length;
             const totalPasien = STATE.master_pasien.length;
             const totalAduan = STATE.master_aduan.length;
-
+            const totalEdukasi = STATE.kpi.educationCount;
+            
             const completedDeliveries = STATE.antrean_antaran.filter(a => a.status.startsWith("Selesai"));
             const totalCompleted = completedDeliveries.length;
             
-            let avgRating = 5;
-            if (totalCompleted > 0) {
-                const sumRating = completedDeliveries.reduce((acc, curr) => acc + (curr.rating || 5), 0);
-                avgRating = Math.round((sumRating / totalCompleted) * 10) / 10;
-            }
-
             let avgDuration = 15;
             if (totalCompleted > 0) {
                 const sumDuration = completedDeliveries.reduce((acc, curr) => acc + (curr.duration || 15), 0);
                 avgDuration = Math.round(sumDuration / totalCompleted);
             }
 
-            const satisfactionRate = Math.round((avgRating / 5) * 100);
+            if (document.getElementById("kpi-val-1")) document.getElementById("kpi-val-1").innerText = totalAntaran + totalResep;
+            if (document.getElementById("kpi-val-2")) document.getElementById("kpi-val-2").innerText = `${STATE.system_settings.SLA_RESPONSE_MINUTES} Menit`;
+            if (document.getElementById("kpi-val-3")) document.getElementById("kpi-val-3").innerText = `${STATE.kpi.fcrRate}%`;
+            if (document.getElementById("kpi-val-4")) document.getElementById("kpi-val-4").innerText = `${totalEdukasi} Kali`;
+            if (document.getElementById("kpi-val-5")) document.getElementById("kpi-val-5").innerText = totalAduan;
+            if (document.getElementById("kpi-val-6")) document.getElementById("kpi-val-6").innerText = totalPasien;
+            if (document.getElementById("kpi-val-7")) document.getElementById("kpi-val-7").innerText = `${STATE.kpi.commQuality}/10`;
+            if (document.getElementById("kpi-val-8")) document.getElementById("kpi-val-8").innerText = `${STATE.kpi.trustIndex}%`;
+            if (document.getElementById("kpi-val-9")) document.getElementById("kpi-val-9").innerText = `${STATE.kpi.satisfaction}%`;
+            if (document.getElementById("kpi-val-10")) document.getElementById("kpi-val-10").innerText = `${avgDuration} Mnt`;
+        }
 
-            const kpi1 = document.getElementById("kpi-val-1");
-            const kpi2 = document.getElementById("kpi-val-2");
-            const kpi3 = document.getElementById("kpi-val-3");
-            const kpi4 = document.getElementById("kpi-val-4");
-            const kpi5 = document.getElementById("kpi-val-5");
-            const kpi6 = document.getElementById("kpi-val-6");
-            const kpi7 = document.getElementById("kpi-val-7");
-            const kpi8 = document.getElementById("kpi-val-8");
-            const kpi9 = document.getElementById("kpi-val-9");
-            const kpi10 = document.getElementById("kpi-val-10");
+        function saveRobotWaConfig() {
+            const num = document.getElementById("wa-master-robot-number")?.value.trim();
+            if (!num) return;
+            STATE.dinamik_robot_wa = num;
+            STATE.system_settings.WA_GATEWAY_NUMBER = num;
+            showCustomDialog('success', 'Kontak Robot Diperbarui', `Nomor WA Robot diatur ke +${num}.`);
+        }
 
-            if (kpi1) kpi1.innerText = `${totalAntaran + totalResep}`;
-            if (kpi2) kpi2.innerText = `${STATE.system_settings.SLA_RESPONSE_MINUTES} mnt`;
-            if (kpi3) kpi3.innerText = `${STATE.kpi.fcrRate}%`;
-            if (kpi4) kpi4.innerText = `${STATE.kpi.educationCount} kali`;
-            if (kpi5) kpi5.innerText = `${totalAduan}`;
-            if (kpi6) kpi6.innerText = `${totalPasien} Jiwa`;
-            if (kpi7) kpi7.innerText = `${avgRating} / 5`;
-            if (kpi8) kpi8.innerText = `${STATE.kpi.trustIndex}%`;
-            if (kpi9) kpi9.innerText = `${satisfactionRate}%`;
-            if (kpi10) kpi10.innerText = `${avgDuration} mnt`;
+
+        // Fungsi pembantu parsing baris CSV secara tangguh (Support Koma & Titik Koma serta Kutip Ganda)
+        function parseCSVLineRobust(line) {
+            let delimiter = ',';
+            const semicolonCount = (line.match(/;/g) || []).length;
+            const commaCount = (line.match(/,/g) || []).length;
+            
+            // Jika deteksi titik koma lebih dominan (Khas Excel regional Indonesia)
+            if (semicolonCount > commaCount) {
+                delimiter = ';';
+            }
+
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === delimiter && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function downloadCsvTemplate() {
+            const headers = "Kode,Nama,Kategori,Edukasi,EfekSamping\n";
+            const rows = [
+                'OBT-101,Glimepiride 2mg,Antidiabetes,Wajib diminum segera sebelum atau saat suapan sarapan pagi pertama.,Keringat dingin lapar.',
+                'OBT-102,Captopril 25mg,Antihipertensi,Diminum saat perut kosong (1 jam sebelum atau 2 jam sesudah makan).,Batuk kering ringan.',
+                'OBT-103,Ibuprofen 400mg,Analgetik,Wajib diminum sesudah makan untuk meminimalisir iritasi lambung.,Nyeri ulu hati.'
+            ].join('\n');
+
+            const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Template_CSV_Obat_SINTA.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showCustomDialog('success', 'Template Diunduh', 'Gunakan file template tersebut sebagai acuan mengisi daftar obat (OBT) Anda sebelum diunggah.');
+        }
+
+
+        function processCsvUpload() {
+            const fileInput = document.getElementById("csv-file-input");
+            if (!fileInput || !fileInput.files.length) {
+                showCustomDialog('danger', 'File Belum Dipilih', 'Silakan pilih berkas file format CSV Kemenkes terlebih dahulu.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split(/\r?\n/);
+                    let count = 0;
+                    
+                    // Format kolom: Kode,Nama,Kategori,Edukasi,EfekSamping
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        
+                        const cols = parseCSVLineRobust(line);
+                        if (cols.length >= 4) {
+                            const code = cols[0].replace(/^"|"$/g, '').trim();
+                            const name = cols[1].replace(/^"|"$/g, '').trim();
+                            const category = cols[2].replace(/^"|"$/g, '').trim();
+                            const education = cols[3].replace(/^"|"$/g, '').trim();
+                            const sideEffect = (cols[4] || "Sakit kepala ringan, kram perut").replace(/^"|"$/g, '').trim();
+
+                            if (code && name) {
+                                const existingIdx = STATE.master_obat.findIndex(d => d.kode_obat === code || d.nama_obat.toLowerCase() === name.toLowerCase());
+                                if (existingIdx !== -1) {
+                                    STATE.master_obat[existingIdx].nama_obat = name;
+                                    STATE.master_obat[existingIdx].kategori_obat = category;
+                                    STATE.master_obat[existingIdx].teks_edukasi = education;
+                                    STATE.master_obat[existingIdx].efek_samping_utama = sideEffect;
+                                } else {
+                                    STATE.master_obat.push({
+                                        id: "d_csv_" + Date.now() + "_" + i,
+                                        kode_obat: code,
+                                        nama_obat: name,
+                                        kategori_obat: category,
+                                        teks_edukasi: education,
+                                        efek_samping_utama: sideEffect
+                                    });
+                                }
+                                count++;
+                            }
+                        }
+                    }
+
+                    // Render preview table
+                    const previewTbody = document.getElementById("csv-preview-tbody");
+                    const previewContainer = document.getElementById("csv-preview-table-container");
+                    if (previewTbody && previewContainer) {
+                        previewTbody.innerHTML = "";
+                        STATE.master_obat.slice(-5).forEach(d => {
+                            const tr = document.createElement("tr");
+                            tr.className = "border-b border-white/5";
+                            tr.innerHTML = `
+                                <td class="p-2 font-mono text-cyan-400">${d.kode_obat}</td>
+                                <td class="p-2 font-bold text-white">${d.nama_obat}</td>
+                                <td class="p-2 text-slate-400">${d.kategori_obat}</td>
+                                <td class="p-2 truncate max-w-[150px] text-slate-400">${d.teks_edukasi}</td>
+                            `;
+                            previewTbody.appendChild(tr);
+                        });
+                        previewContainer.classList.remove("hidden");
+                    }
+
+                    renderLibraryCards();
+                    renderDrugDictionaryTable();
+                    
+                    // Menjalankan sinkronisasi instan ke seluruh portal tabel yang membutuhkan data terbaru ini secara seketika
+                    syncAllPortals(); 
+                    
+                    showCustomDialog('success', 'Import Sukses', `Berhasil menyinkronkan & mengimpor **${count}** data obat ke sistem SINTA secara real-time.`);
+                    fileInput.value = "";
+                } catch (err) {
+                    console.error(err);
+                    showCustomDialog('danger', 'Gagal Memproses CSV', 'Format file CSV salah atau tidak kompatibel. Pastikan urutan kolom sesuai standar template.');
+                }
+            };
+            reader.readAsText(file, "UTF-8");
         }
 
         function simulateExport(format) {
@@ -4379,7 +5060,8 @@
             // Ambil parameter tanggal filter dari UI
             const startDateVal = document.getElementById("print-start-date") ? document.getElementById("print-start-date").value : "";
             const endDateVal = document.getElementById("print-end-date") ? document.getElementById("print-end-date").value : "";
-            
+            const printSectionSelect = document.getElementById("print-section-select") ? document.getElementById("print-section-select").value : "all";
+
             let startTimestamp = startDateVal ? new Date(startDateVal + "T00:00:00").getTime() : 0;
             let endTimestamp = endDateVal ? new Date(endDateVal + "T23:59:59").getTime() : Infinity;
 
@@ -4456,6 +5138,10 @@
             if (penanggungJawab.sig_url) {
                 sigPJHtml = `<div class="sig-space" style="height: 55px; display: flex; align-items: center; justify-content: center;"><img src="${penanggungJawab.sig_url}" style="max-height: 50px; mix-blend-mode: multiply;" alt="TTD PJ"></div>`;
             }
+
+            const showKpi = (printSectionSelect === 'all' || printSectionSelect === 'kpi');
+            const showDelivery = (printSectionSelect === 'all' || printSectionSelect === 'delivery');
+            const showComplaint = (printSectionSelect === 'all' || printSectionSelect === 'complaint');
 
             // Menyusun dokumen HTML bernuansa formal instansi pemerintah
             let reportHtml = `
@@ -4621,7 +5307,7 @@
                         </td>
                         <td class="header-text">
                             <h1>Pemerintah Kabupaten Sinjai</h1>
-                            <h2>UPT RSUD SINJAI - KABUPATEN SINJAI</h2>
+                            <h2>UPT RUMAH SAKIT UMUM DAERAH SINJAI</h2>
                             <p>Jl. Jend. Sudirman No. 9, Kabupaten Sinjai, Sulawesi Selatan | Telp: (0482) 21132</p>
                         </td>
                     </tr>
@@ -4632,6 +5318,7 @@
                     <p>Periode Pelayanan Terfilter: <b>${periodeStr}</b> | Dicetak pada: ${todayStr}</p>
                 </div>
 
+                ${showKpi ? `
                 <div class="section-title">I. Ringkasan Indikator Kunci (KPI) Terfilter</div>
                 <table class="data-table" style="margin-bottom: 25px;">
                     <thead>
@@ -4669,7 +5356,9 @@
                         </tr>
                     </tbody>
                 </table>
+                ` : ''}
 
+                ${showDelivery ? `
                 <div class="section-title">II. Riwayat Detil Layanan Antaran Obat (SYIFA) - Periode Terfilter</div>
                 <table class="data-table">
                     <thead>
@@ -4699,7 +5388,9 @@
                         }
                     </tbody>
                 </table>
+                ` : ''}
 
+                ${showComplaint ? `
                 <div class="section-title">III. Laporan Aduan &amp; Keluhan Layanan - Periode Terfilter</div>
                 <table class="data-table">
                     <thead>
@@ -4725,6 +5416,7 @@
                         }
                     </tbody>
                 </table>
+                ` : ''}
 
                 <div class="signatures-container">
                     <div class="sig-box">
@@ -4747,6 +5439,340 @@
 
             printWindow.document.open();
             printWindow.document.write(reportHtml);
+            printWindow.document.close();
+        }
+
+        function exportTop10DrugsPDF() {
+            const printWindow = window.open('', '_blank');
+            const startDateVal = document.getElementById("print-start-date") ? document.getElementById("print-start-date").value : "";
+            const endDateVal = document.getElementById("print-end-date") ? document.getElementById("print-end-date").value : "";
+            
+            let startTimestamp = startDateVal ? new Date(startDateVal + "T00:00:00").getTime() : 0;
+            let endTimestamp = endDateVal ? new Date(endDateVal + "T23:59:59").getTime() : Infinity;
+
+            const filteredAntaran = STATE.antrean_antaran.filter(a => {
+                const time = a.created_at || a.accepted_at || a.completed_at || Date.now();
+                return time >= startTimestamp && time <= endTimestamp;
+            });
+
+            // Map and count occurrences of individual drugs
+            const drugCounts = {};
+            filteredAntaran.forEach(a => {
+                if (a.jenis_obat) {
+                    const drugs = a.jenis_obat.split(', ').filter(Boolean);
+                    drugs.forEach(d => {
+                        drugCounts[d] = (drugCounts[d] || 0) + 1;
+                    });
+                }
+            });
+
+            const sortedDrugs = Object.keys(drugCounts).map(name => {
+                return { name: name, count: drugCounts[name] };
+            }).sort((x, y) => y.count - x.count).slice(0, 10);
+
+            const formattedStart = startDateVal ? new Date(startDateVal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "Awal Layanan";
+            const formattedEnd = endDateVal ? new Date(endDateVal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "Hari Ini";
+            const periodeStr = `${formattedStart} s/d ${formattedEnd}`;
+
+            const kepalaInstalasi = STATE.master_pegawai.find(p => p.role === "Kepala Instalasi" && p.status === "Aktif") || { nama: "Drs. H. Syahrul, M.Kes", nip: "NIP. 197410051998031004", sig_url: "" };
+
+            let listRows = sortedDrugs.length === 0 ? '<tr><td colspan="3" style="text-align:center; color:#94a3b8; font-style:italic;">Tidak ada sediaan obat terekam pada periode ini.</td></tr>' :
+                sortedDrugs.map((d, index) => `
+                    <tr>
+                        <td style="text-align:center;"><strong>${index + 1}</strong></td>
+                        <td><strong>${d.name}</strong></td>
+                        <td style="color:#0284c7; font-weight:bold; text-align:center;">${d.count} Resep / Paket</td>
+                    </tr>
+                `).join('');
+
+            let reportHtml = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>Laporan_10_Obat_Terbanyak</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 30px; color: #1e293b; }
+                    .header-table { width: 100%; border-bottom: 3px double #0284c7; padding-bottom: 12px; margin-bottom: 25px; }
+                    .header-text { text-align: center; }
+                    .header-text h1 { font-size: 18px; margin: 0; text-transform: uppercase; }
+                    .header-text h2 { font-size: 14px; margin: 4px 0 0 0; color: #0284c7; }
+                    .title-section { text-align: center; margin-bottom: 25px; }
+                    .title-section h3 { margin: 0; font-size: 15px; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; display: inline-block; padding-bottom: 4px; }
+                    table.data-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
+                    table.data-table th { background-color: #0284c7; color: white; padding: 10px; font-weight: bold; text-align: left; }
+                    table.data-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; }
+                    table.data-table tr:nth-child(even) { background-color: #f8fafc; }
+                    .print-bar { background-color: #f1f5f9; padding: 10px; display: flex; justify-content: space-between; margin-bottom: 25px; border-radius: 6px; }
+                    .btn-print { background-color: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+                </style>
+            </head>
+            <body>
+                <div class="print-bar">
+                    <span><strong>Laporan Distribusi 10 Jenis Obat Terbanyak (Terfilter)</strong></span>
+                    <button class="btn-print" onclick="window.print()">Cetak / PDF</button>
+                </div>
+                <table class="header-table">
+                    <tr>
+                        <td class="header-text">
+                            <h1>Pemerintah Kabupaten Sinjai</h1>
+                            <h2>UPT RUMAH SAKIT UMUM DAERAH SINJAI</h2>
+                        </td>
+                    </tr>
+                </table>
+                <div class="title-section">
+                    <h3>10 Jenis Sediaan Obat Terbanyak Dalam Resep Pengantaran</h3>
+                    <p>Periode Pelayanan Terfilter: <b>${periodeStr}</b></p>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:10%; text-align:center;">Peringkat</th>
+                            <th style="width:60%;">Nama Sediaan / Jenis Obat</th>
+                            <th style="width:30%; text-align:center;">Frekuensi Distribusi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${listRows}
+                    </tbody>
+                </table>
+            </body>
+            </html>`;
+            printWindow.document.open();
+            printWindow.document.write(reportHtml);
+            printWindow.document.close();
+        }
+
+        function exportComplaintsDetailPDF() {
+            const printWindow = window.open('', '_blank');
+            const startDateVal = document.getElementById("print-start-date") ? document.getElementById("print-start-date").value : "";
+            const endDateVal = document.getElementById("print-end-date") ? document.getElementById("print-end-date").value : "";
+            
+            let startTimestamp = startDateVal ? new Date(startDateVal + "T00:00:00").getTime() : 0;
+            let endTimestamp = endDateVal ? new Date(endDateVal + "T23:59:59").getTime() : Infinity;
+
+            const filteredAduan = STATE.master_aduan.filter(ad => {
+                const time = ad.timestamp || Date.now();
+                return time >= startTimestamp && time <= endTimestamp;
+            });
+
+            const formattedStart = startDateVal ? new Date(startDateVal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "Awal Layanan";
+            const formattedEnd = endDateVal ? new Date(endDateVal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "Hari Ini";
+            const periodeStr = `${formattedStart} s/d ${formattedEnd}`;
+
+            let listRows = filteredAduan.length === 0 ? '<tr><td colspan="4" style="text-align:center; color:#94a3b8; font-style:italic;">Tidak ada laporan aduan masuk untuk periode filter ini.</td></tr>' :
+                filteredAduan.map(ad => `
+                    <tr>
+                        <td style="text-align:center;"><strong>${ad.id}</strong></td>
+                        <td><strong>${ad.pelapor}</strong></td>
+                        <td>${ad.keluhan}</td>
+                        <td style="text-align:center;">${ad.waktu}</td>
+                    </tr>
+                `).join('');
+
+            let reportHtml = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>Laporan_Rincian_Keluhan_Layanan</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 30px; color: #1e293b; }
+                    .header-table { width: 100%; border-bottom: 3px double #f43f5e; padding-bottom: 12px; margin-bottom: 25px; }
+                    .header-text { text-align: center; }
+                    .header-text h1 { font-size: 18px; margin: 0; text-transform: uppercase; }
+                    .header-text h2 { font-size: 14px; margin: 4px 0 0 0; color: #f43f5e; }
+                    .title-section { text-align: center; margin-bottom: 25px; }
+                    .title-section h3 { margin: 0; font-size: 15px; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; display: inline-block; padding-bottom: 4px; }
+                    table.data-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
+                    table.data-table th { background-color: #f43f5e; color: white; padding: 10px; font-weight: bold; text-align: left; }
+                    table.data-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; }
+                    table.data-table tr:nth-child(even) { background-color: #fff1f2; }
+                    .print-bar { background-color: #f1f5f9; padding: 10px; display: flex; justify-content: space-between; margin-bottom: 25px; border-radius: 6px; }
+                    .btn-print { background-color: #f43f5e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+                </style>
+            </head>
+            <body>
+                <div class="print-bar">
+                    <span><strong>Laporan Detail Penanganan Keluhan Pelayanan</strong></span>
+                    <button class="btn-print" onclick="window.print()">Cetak / PDF</button>
+                </div>
+                <table class="header-table">
+                    <tr>
+                        <td class="header-text">
+                            <h1>Pemerintah Kabupaten Sinjai</h1>
+                            <h2>UPT RUMAH SAKIT UMUM DAERAH SINJAI</h2>
+                        </td>
+                    </tr>
+                </table>
+                <div class="title-section">
+                    <h3>Rincian Pengaduan & Keluhan Operasional Terhadap Pelayanan</h3>
+                    <p>Periode Pelayanan Terfilter: <b>${periodeStr}</b></p>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:15%; text-align:center;">ID Aduan</th>
+                            <th style="width:20%;">Nama Pelapor</th>
+                            <th style="width:50%;">Uraian Keluhan / Kendala</th>
+                            <th style="width:15%; text-align:center;">Waktu Laporan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${listRows}
+                    </tbody>
+                </table>
+            </body>
+            </html>`;
+            printWindow.document.open();
+            printWindow.document.write(reportHtml);
+            printWindow.document.close();
+        }
+
+        function generateOfficialPDFReceipt(deliveryId) {
+            const ant = STATE.antrean_antaran.find(a => a.id === deliveryId);
+            if (!ant) {
+                showCustomDialog('danger', 'Tidak Ditemukan', 'Data antaran obat tidak ditemukan.');
+                return;
+            }
+
+            const p = STATE.master_pasien.find(x => x.id === ant.patient_id || x.nomor_whatsapp === ant.nomor_whatsapp);
+            const todayStr = new Date().toLocaleDateString('id-ID', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            });
+
+            // Ambil data pejabat aktif dari Master Pegawai
+            const kepalaInstalasi = STATE.master_pegawai.find(x => x.role === "Kepala Instalasi" && x.status === "Aktif") || { nama: "Drs. H. Syahrul, M.Kes", nip: "NIP. 197410051998031004" };
+            const penanggungJawab = STATE.master_pegawai.find(x => x.role === "Apoteker Jaga" && x.status === "Aktif") || { nama: "Apt. Andi Rusli, S.Farm", nip: "SIPA. 19931201/SIPA_7307/2026" };
+            const petugasAntarNama = ant.courier_name || "Petugas Antar SYIFA";
+
+            let kopLogoHtml = `<div style="border: 2px solid #0284c7; border-radius: 8px; width: 75px; height: 75px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; color: #0284c7; text-align: center; line-height: 1.2;">RSUD<br>SINJAI</div>`;
+            if (STATE.system_settings.KOP_IMAGE_URL) {
+                kopLogoHtml = `<img src="${STATE.system_settings.KOP_IMAGE_URL}" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Logo Kop">`;
+            }
+
+            const printWindow = window.open('', '_blank');
+            const receiptHtml = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>Bukti_Layanan_SYIFA_${ant.id}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; color: #1e293b; line-height: 1.4; padding: 30px; }
+                    .header-table { width: 100%; border-bottom: 3px double #0284c7; padding-bottom: 12px; margin-bottom: 20px; }
+                    .header-text { text-align: center; }
+                    .header-text h1 { font-size: 18px; margin: 0; text-transform: uppercase; }
+                    .header-text h2 { font-size: 13px; margin: 4px 0 0 0; color: #0284c7; }
+                    .header-text p { font-size: 10px; margin: 4px 0 0 0; color: #64748b; }
+                    .title-section { text-align: center; margin-bottom: 20px; }
+                    .title-section h3 { margin: 0; font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; display: inline-block; padding-bottom: 4px; }
+                    .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+                    .info-table td { padding: 5px; vertical-align: top; }
+                    .info-table td.label { font-weight: bold; width: 30%; }
+                    .med-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }
+                    .med-table th { background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+                    .med-table td { border: 1px solid #cbd5e1; padding: 8px; }
+                    .signatures-container { margin-top: 30px; width: 100%; display: flex; justify-content: space-between; font-size: 11px; }
+                    .sig-box { width: 200px; text-align: center; }
+                    .sig-space { height: 50px; }
+                    .print-bar { background-color: #f1f5f9; padding: 10px; display: flex; justify-content: space-between; margin-bottom: 20px; border-radius: 6px; }
+                    .btn-print { background-color: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+                    @media print { .print-bar { display: none !important; } }
+                </style>
+            </head>
+            <body>
+                <div class="print-bar">
+                    <span><strong>Bukti Layanan Pengantaran Obat (SYIFA)</strong></span>
+                    <button class="btn-print" onclick="window.print()">Cetak Resi</button>
+                </div>
+                <table class="header-table">
+                    <tr>
+                        <td style="width: 80px;">${kopLogoHtml}</td>
+                        <td class="header-text">
+                            <h1>Pemerintah Kabupaten Sinjai</h1>
+                            <h2>UPT RUMAH SAKIT UMUM DAERAH SINJAI</h2>
+                            <p>Jl. Jend. Sudirman No. 9, Kabupaten Sinjai, Sulawesi Selatan | Telp: (0482) 21132</p>
+                        </td>
+                    </tr>
+                </table>
+                <div class="title-section">
+                    <h3>Bukti Penyerahan Obat Rumah (Program SYIFA ON CARE)</h3>
+                </div>
+                <table class="info-table">
+                    <tr>
+                        <td class="label">ID Transaksi</td>
+                        <td>: <strong>${ant.id}</strong></td>
+                        <td class="label">Status Antaran</td>
+                        <td>: ${ant.status}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Nama Pasien</td>
+                        <td>: ${ant.nama_lengkap} (${p ? p.usia + ' Thn' : '-'})</td>
+                        <td class="label">Waktu Pengantaran</td>
+                        <td>: ${ant.duration ? ant.duration + ' Menit' : '-'}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Wilayah Kelurahan</td>
+                        <td>: ${ant.kelurahan}</td>
+                        <td class="label">Petugas Antar</td>
+                        <td>: ${petugasAntarNama}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Alamat Lengkap</td>
+                        <td>: ${ant.alamat}</td>
+                        <td class="label">Kepuasan Pasien</td>
+                        <td>: ${ant.rating ? '⭐ ' + ant.rating + '/5' : 'Belum diisi'}</td>
+                    </tr>
+                </table>
+                <h4 style="font-size:12px; margin-bottom:8px; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">Daftar Sediaan Obat yang Diserahkan:</h4>
+                <table class="med-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%; text-align: center;">No.</th>
+                            <th style="width: 50%;">Nama Sediaan Obat</th>
+                            <th style="width: 40%;">Petunjuk Penggunaan Utama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ant.jenis_obat.split(', ').filter(Boolean).map((med, index) => {
+                            const matchObat = STATE.master_obat.find(o => o.nama_obat.toLowerCase().includes(med.toLowerCase()));
+                            const edukasi = matchObat ? matchObat.teks_edukasi : "Gunakan obat sesuai petunjuk klinis etiket apotek harian.";
+                            return `
+                                <tr>
+                                    <td style="text-align: center;">${index + 1}</td>
+                                    <td><strong>${med}</strong></td>
+                                    <td>${edukasi}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+                <div class="signatures-container">
+                    <div class="sig-box">
+                        <p>Diterima Oleh,</p>
+                        <p style="font-weight: bold; margin-top:5px;">Pasien / Keluarga Pasien</p>
+                        <div class="sig-space"></div>
+                        <p style="text-decoration: underline; font-weight: bold;">${ant.nama_lengkap}</p>
+                    </div>
+                    <div class="sig-box">
+                        <p>Diserahkan Oleh,</p>
+                        <p style="font-weight: bold; margin-top:5px;">Petugas Antar</p>
+                        <div class="sig-space"></div>
+                        <p style="text-decoration: underline; font-weight: bold;">${petugasAntarNama}</p>
+                    </div>
+                    <div class="sig-box">
+                        <p>Mengetahui,</p>
+                        <p style="font-weight: bold; margin-top:5px;">Apoteker Jaga</p>
+                        <div class="sig-space"></div>
+                        <p style="text-decoration: underline; font-weight: bold;">${penanggungJawab.nama}</p>
+                        <p>${penanggungJawab.nip || ''}</p>
+                    </div>
+                </div>
+            </body>
+            </html>`;
+            printWindow.document.open();
+            printWindow.document.write(receiptHtml);
             printWindow.document.close();
         }
 
@@ -4809,23 +5835,8 @@
 
             showCustomDialog('success', 'Pengingat Terkirim', `Simulasi pesan pengingat minum obat untuk **${p.nama_lengkap}** telah berhasil dikirim ke forum chat SINTA.`);
         }
-        function syncAllPortals() {
-            renderDeliveryTable();
-            renderMasterRecipesTable();
-            renderMasterPatientsTable();
-            renderHistoryLogs();
-            renderKonsultasiLogs();
-            renderActiveChatsList();
-            renderKpiCards();
-            populateScheduleFormDropdowns();
-            renderAnalyticsWidgets();
-            renderDynamicChart();
-            renderDashboardComplaintsLog(); // Synchronized to run on all state changes
 
-            if (STATE.selectedChatSessionIndex !== null) {
-                selectChatSession(STATE.selectedChatSessionIndex);
-            }
-        }
+        // Catatan: Fungsi duplikat syncAllPortals() sebelumnya di sini telah dihapus dengan aman untuk efisiensi kode.
 
         async function fetchConfiguration() {
             if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) {
@@ -4883,7 +5894,7 @@
                     body: JSON.stringify({ value: newValue })
                 });
                 if (!response.ok) {
-                    throw new Error(`PATCH configuration update failed: ${response.statusText}`);
+                    throw new Error("PATCH configuration update failed");
                 }
                 APP_CONFIG[key] = newValue;
                 console.log(`Cloud configuration synced successfully: ${key} = ${newValue}`);
