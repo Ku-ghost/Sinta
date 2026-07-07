@@ -1513,26 +1513,21 @@
     <!-- MAIN APP CONTROLLERS -->
     <script>
         // KREDENSIAL CLOUD SUPABASE DENGAN INTEGRASI FULL ONLINE REAL-TIME
-        let SUPABASE_URL = localStorage.getItem("v_supabase_url") || "https://iouxkoruatxvsfhlwryx.supabase.co"; 
-        let SUPABASE_ANON_KEY = localStorage.getItem("v_supabase_anon_key") || "sb_publishable_YEnLnyCy57calVJvghys0w_gw3UwBNf";
+        let SUPABASE_URL = "https://iouxkoruatxvsfhlwryx.supabase.co"; 
+        let SUPABASE_ANON_KEY = "sb_publishable_YEnLnyCy57calVJvghys0w_gw3UwBNf";
         
         // TEMPELKAN / SEMATKAN LINK GOOGLE APPS SCRIPT (GAS) DI SINI
-        let GAS_API_URL = localStorage.getItem("v_gas_api_url") || "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+        let GAS_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
         
         let APP_CONFIG = {};
 
         function saveLocalSessionState() {
-            // Hanya simpan nomor WhatsApp login sesi aktif agar pasien tidak ter-logout saat refresh halaman, bukan data transaksi
-            localStorage.setItem("active_patient_wa", STATE.currentOnboardWa || "");
+            // Dikosongkan: Local Storage dihapus sepenuhnya untuk menjaga kemurnian memori inti aplikasi (Pure SPA).
         }
 
         function loadLocalSessionState() {
-            // Bebaskan dari ketergantungan local storage untuk transaksi demi menghindari desinkronisasi lokal
-            try {
-                STATE.currentOnboardWa = localStorage.getItem("active_patient_wa") || null;
-            } catch (e) {
-                console.error("Gagal memuat persistent session state:", e);
-            }
+            // Dikosongkan: Sesi kini murni bergantung pada RAM yang berjalan (Volatile Memory).
+            STATE.currentOnboardWa = null;
         }
 
         // Tarik data konfigurasi app_settings, transaksi aktif, dan obrolan secara berkala dari Supabase REST API
@@ -1691,10 +1686,8 @@
         }
 
         function logoutPatient() {
-            localStorage.removeItem("active_patient_wa");
-            localStorage.removeItem("sinta_antrean");
-            localStorage.removeItem("sinta_chats");
-            localStorage.removeItem("sinta_resep");
+            STATE.currentOnboardWa = null;
+            STATE.currentPatient = null;
             location.reload();
         }
 
@@ -2898,10 +2891,10 @@
             if(document.getElementById("tmpl-butuh-apoteker")) document.getElementById("tmpl-butuh-apoteker").value = STATE.system_settings.TEMPLATE_BUTUH_APOTEKER;
             if(document.getElementById("tmpl-notif-pengingat")) document.getElementById("tmpl-notif-pengingat").value = STATE.system_settings.TEMPLATE_NOTIF_PENGINGAT;
             
-            // Mengisi form isian panel Supabase dengan data tersimpan di LocalStorage jika ada
-            if(document.getElementById("db-setup-url")) document.getElementById("db-setup-url").value = localStorage.getItem("v_supabase_url") || "";
-            if(document.getElementById("db-setup-key")) document.getElementById("db-setup-key").value = localStorage.getItem("v_supabase_anon_key") || "";
-            if(document.getElementById("db-setup-gas-url")) document.getElementById("db-setup-gas-url").value = localStorage.getItem("v_gas_api_url") || "";
+            // Mengisi form isian panel Supabase langsung dari state memori saat ini
+            if(document.getElementById("db-setup-url")) document.getElementById("db-setup-url").value = SUPABASE_URL === "YOUR_SUPABASE_URL_HERE" ? "" : SUPABASE_URL;
+            if(document.getElementById("db-setup-key")) document.getElementById("db-setup-key").value = SUPABASE_ANON_KEY === "YOUR_SUPABASE_ANON_KEY_HERE" ? "" : SUPABASE_ANON_KEY;
+            if(document.getElementById("db-setup-gas-url")) document.getElementById("db-setup-gas-url").value = GAS_API_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE" ? "" : GAS_API_URL;
 
             if(document.getElementById("cfg-lansia-threshold")) document.getElementById("cfg-lansia-threshold").value = STATE.system_settings.LANSIA_THRESHOLD_YEARS;
         }
@@ -2926,15 +2919,11 @@
             })
             .then(response => {
                 if (response.ok) {
-                    // Jika sukses terkoneksi, simpan ke memori lokal browser
-                    localStorage.setItem("v_supabase_url", urlInput);
-                    localStorage.setItem("v_supabase_anon_key", keyInput);
+                    // Update ke variabel sistem memori secara langsung (Tanpa Local Storage)
                     if (gasInput) {
-                        localStorage.setItem("v_gas_api_url", gasInput);
                         GAS_API_URL = gasInput;
                     }
                     
-                    // Perbarui variabel sistem aktif
                     SUPABASE_URL = urlInput;
                     SUPABASE_ANON_KEY = keyInput;
 
@@ -2958,11 +2947,7 @@
         }
 
         function clearCloudDatabaseCredentials() {
-            showCustomDialog('danger', 'Hapus Koneksi?', 'Apakah Anda yakin ingin memutuskan dan menghapus konfigurasi database Supabase dan GAS Webhook dari browser ini?', function() {
-                localStorage.removeItem("v_supabase_url");
-                localStorage.removeItem("v_supabase_anon_key");
-                localStorage.removeItem("v_gas_api_url");
-
+            showCustomDialog('danger', 'Hapus Koneksi?', 'Apakah Anda yakin ingin memutuskan dan menghapus konfigurasi database Supabase dan GAS Webhook dari aplikasi ini?', function() {
                 document.getElementById("db-setup-url").value = "";
                 document.getElementById("db-setup-key").value = "";
                 if (document.getElementById("db-setup-gas-url")) document.getElementById("db-setup-gas-url").value = "";
@@ -3016,7 +3001,6 @@
                 STATE.currentPatient = null;
                 STATE.menusUnlocked = true; 
 
-                localStorage.setItem("active_patient_wa", "36");
                 const logoutBtn = document.getElementById("patient-logout-btn");
                 if (logoutBtn) logoutBtn.classList.remove("hidden");
 
@@ -3048,7 +3032,6 @@
             else if (wa.startsWith('+')) wa = wa.slice(1);
 
             STATE.currentOnboardWa = wa;
-            localStorage.setItem("active_patient_wa", wa);
             document.getElementById("display-active-wa").innerText = wa;
 
             const logoutBtn = document.getElementById("patient-logout-btn");
@@ -6346,97 +6329,119 @@
             }
         }
 
-        window.onload = async function () {
-    // 1. Ambil konfigurasi dari database Supabase sebagai prioritas utama
-    try {
-        await fetchConfiguration(); 
-    } catch (configError) {
-        console.error("Gagal menarik konfigurasi database:", configError);
-    }
-
-    // 2. Inisialisasi tampilan dasar & Data
-    try {
-        handleHashRouting();
-        populateTemplateFields();
-        renderLibraryCards();
-        renderDrugDictionaryTable();
-        renderMasterKelurahanTable();
-        populateKelurahanDropdown();
-        renderPublicAduanList();
-        renderMasterWaktuTable();
-        renderGlobalWaktuDropdown();
-        renderDrugsTags();
-        
-        loadLocalSessionState();
-
-        // 3. Tarik data real-time dari Supabase
-        await pullRealtimeDataFromCloud();
-
-        // 4. Sinkronisasi data dari Google Sheets
-        await fetchInitialDataFromCloud();
-
-        syncAllPortals();
-
-        // 5. Inisialisasi Map (Leaflet)
-        initializeRealMap();
-
-        // 6. Inisialisasi Tabel Pegawai & Konfigurasi Lainnya
-        renderCourierWaConfigList();
-        renderComplaintWaConfigList();
-        const robotWaEl = document.getElementById("wa-master-robot-number");
-        if (robotWaEl) robotWaEl.value = STATE.dinamik_robot_wa;
-
-        const today = new Date().toISOString().split('T')[0];
-        const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-        if (document.getElementById("print-start-date")) document.getElementById("print-start-date").value = firstDayOfMonth;
-        if (document.getElementById("print-end-date")) document.getElementById("print-end-date").value = today;
-
-    } catch(e) {
-        console.error("Kesalahan inisialisasi sistem:", e);
-    }
-
-    // 7. Event listener untuk proteksi refresh saat pengiriman obat
-    window.addEventListener('beforeunload', function (e) {
-        if (STATE.portal === 'public' && STATE.currentPatient) {
-            const activeDelivery = STATE.antrean_antaran.find(a => 
-                a.patient_id === STATE.currentPatient.id && a.status === "Diterima"
-            );
-            if (activeDelivery) {
-                e.preventDefault();
-                e.returnValue = '⚠️ JANGAN REFRESH: Harap jangan menutup halaman ini sebelum mengonfirmasi paket obat tiba.';
+        window.onload = async function() {
+            // Ambil konfigurasi terbaru dari Supabase
+            try {
+                await fetchConfiguration();
+            } catch (configError) {
+                console.error("Gagal menarik konfigurasi dari Supabase:", configError);
             }
-        }
-    });
 
-    // 8. Interval Terjadwal WITA & Sinkronisasi
-    let syncIntervalCounter = 0;
-    setInterval(async () => {
-        const now = new Date();
-        const opt = { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Makassar' };
-        const timerEl = document.getElementById("live-wita-timer");
-        if (timerEl) timerEl.innerText = now.toLocaleTimeString('id-ID', opt) + " WITA";
-        updateServiceStatusUI();
+            try {
+                handleHashRouting();
+                populateTemplateFields();
+                renderLibraryCards();
+                renderDrugDictionaryTable();
+                renderMasterKelurahanTable();
+                populateKelurahanDropdown();
+                renderPublicAduanList();
+                renderMasterWaktuTable();
+                renderGlobalWaktuDropdown();
+                renderDrugsTags();
 
-        syncIntervalCounter++;
-        if (syncIntervalCounter >= 5) {
-            syncIntervalCounter = 0;
-            await pullRealtimeDataFromCloud();
-        }
+                // Load session info login murni dari RAM
+                loadLocalSessionState();
 
-        const currentHHMM = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Makassar' });
-        STATE.chats.forEach((c, idx) => {
-            if (c.scheduledTime && c.scheduledTime === currentHHMM && c.lastTriggeredTime !== currentHHMM) {
-                c.lastTriggeredTime = currentHHMM;
-                c.messages.push({
-                    sender: 'bot',
-                    text: `🚨 <b>[ALARM SINTA]</b><br>Halo <b>${c.patientName}</b>, waktu minum obat pada jam <b>${currentHHMM} WITA</b>.`,
-                    time: getCurrentWitaTime()
+                // Lakukan penarikan pertama real-time Supabase
+                await pullRealtimeDataFromCloud();
+
+                // Tarik database terpusat dari Google Sheets secara real-time
+                await fetchInitialDataFromCloud();
+
+                syncAllPortals();
+
+            } catch(e) {
+                console.error("Kesalahan inisialisasi tahap 1:", e);
+            }
+
+            try {
+                initializeRealMap();
+            } catch(e) {
+                console.error("Gagal menginisialisasi Leaflet map:", e);
+            }
+
+            try {
+                renderCourierWaConfigList();
+                renderComplaintWaConfigList();
+                const robotWaEl = document.getElementById("wa-master-robot-number");
+                if (robotWaEl) robotWaEl.value = STATE.dinamik_robot_wa;
+
+                // Atur nilai default tanggal (Mulai: Tanggal 1 bulan berjalan, Selesai: Hari ini)
+                const today = new Date().toISOString().split('T')[0];
+                const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+                if (document.getElementById("print-start-date")) {
+                    document.getElementById("print-start-date").value = firstDayOfMonth;
+                }
+                if (document.getElementById("print-end-date")) {
+                    document.getElementById("print-end-date").value = today;
+                }
+            } catch(e) {
+                console.error("Kesalahan inisialisasi tahap 2:", e);
+            }
+
+            window.addEventListener('beforeunload', function (e) {
+                if (STATE.portal === 'public' && STATE.currentPatient) {
+                    const activeDelivery = STATE.antrean_antaran.find(a => 
+                        a.patient_id === STATE.currentPatient.id && a.status === "Diterima"
+                    );
+                    if (activeDelivery) {
+                        e.preventDefault();
+                        const warningText = '⚠️ JANGAN REFRESH: Harap jangan menutup atau memuat ulang halaman ini sebelum mengonfirmasi bahwa kiriman paket obat Anda sudah tiba di lokasi.';
+                        e.returnValue = warningText;
+                        return warningText;
+                    }
+                }
+            });
+
+            // Interval Terjadwal WITA, sinkronisasi cloud real-time, & Detektor Pemicu Alarm SINTA Chatbot Otomatis
+            let syncIntervalCounter = 0;
+            setInterval(async () => {
+                const now = new Date();
+                const opt = { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Makassar' };
+                const timerEl = document.getElementById("live-wita-timer");
+                if (timerEl) timerEl.innerText = now.toLocaleTimeString('id-ID', opt) + " WITA";
+                updateServiceStatusUI();
+
+                // LAKUKAN SINKRONISASI REAL-TIME CLOUD TANPA POLLING BERLEBIHAN (Setiap 5 detik sekali)
+                syncIntervalCounter++;
+                if (syncIntervalCounter >= 5) {
+                    syncIntervalCounter = 0;
+                    await pullRealtimeDataFromCloud();
+                }
+
+                const currentHHMM = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Makassar' }); // Format: "HH:MM"
+                
+                STATE.chats.forEach((c, idx) => {
+                    if (c.scheduledTime && c.scheduledTime === currentHHMM && c.lastTriggeredTime !== currentHHMM) {
+                        c.lastTriggeredTime = currentHHMM;
+                        
+                        c.messages.push({
+                            sender: 'bot',
+                            text: `🚨 <b>[SINTA ALARM PENGINGAT OTOMATIS]</b><br>Halo Ibu/Bapak <b>${c.patientName}</b> tercinta. Sekarang sudah memasuki waktu minum obat Anda yang dijadwalkan pada jam <b>${currentHHMM} WITA</b>.<br><br>Mohon pastikan obat dikonsumsi sesuai instruksi dosis dan aturan pakai yang benar demi mempercepat pemulihan Anda. Terima kasih!`,
+                            time: getCurrentWitaTime()
+                        });
+
+                        pushChatToSupabase(c); // Sinkronisasikan alarm terpicu ke database Supabase
+
+                        if (STATE.selectedChatSessionIndex === idx) {
+                            selectChatSession(idx);
+                        }
+                        renderActiveChatsList();
+                        renderKonsultasiLogs();
+                    }
                 });
-                pushChatToSupabase(c);
-                if (STATE.selectedChatSessionIndex === idx) selectChatSession(idx);
-            }
-        });
-    }, 1000);
-};    </script>
+            }, 1000);
+        };
+    </script>
 </body>
 </html>
