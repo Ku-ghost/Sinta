@@ -259,7 +259,7 @@
             <p class="text-[10px] text-cyan-400 font-bold tracking-widest uppercase mb-3">SINTA & SYIFA ON CARE</p>
             
             <p class="text-[11px] text-[#94a3b8] leading-relaxed text-justify mb-4 p-3 bg-white/5 rounded-lg border border-white/5">
-                Demi kelancaran koordinasi, harap simpan nomor WhatsApp resmi apotek RSUD Sinjai sebagai syarat utama dalam verifikasi pengantaran resep aman langsung ke rumah Anda.
+                Demi kelancaran koordinasi multi-device, harap simpan nomor WhatsApp resmi apotek RSUD Sinjai sebagai syarat utama dalam verifikasi pengantaran resep aman langsung ke rumah Anda.
             </p>
 
             <button class="btn btn-glass w-full py-2.5 text-[11px] mb-4 font-bold flex justify-center items-center gap-1.5" onclick="generatePharmacistOfficialVCard()">
@@ -320,6 +320,10 @@
                         <strong class="text-xs text-white block" id="profile-name">Pengunjung Umum</strong>
                         <span class="text-[9px] text-cyan-400 font-medium" id="profile-sub">Akses Pasien</span>
                     </div>
+                    <!-- Tombol Keluar Sesi Pasien Aktif -->
+                    <button id="patient-logout-btn" class="btn btn-glass px-2.5 py-1.5 text-[10.5px] text-rose-400 border-rose-500/20 hover:bg-rose-500/10 hidden" onclick="logoutPatient()">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                    </button>
                     <button id="admin-gate-btn" class="btn btn-glass px-3 py-1.5 text-[10.5px] border-cyan-500/10 text-cyan-400 hidden" onclick="handlePortalSwitchClick()">
                         <i class="fa-solid fa-lock"></i> Portal Staf
                     </button>
@@ -409,13 +413,18 @@
                             <input type="text" id="p-lookup-input" class="form-control text-xs py-1.5" placeholder="Ketik NIK atau nama lengkap...">
                         </div>
                         <div class="flex gap-1.5 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
-                        <button type="button" onclick="lookupPatientDatabase()" class="btn btn-primary text-[10px] py-1.5 px-3 font-bold"><i class="fa-solid fa-magnifying-glass"></i> Cari Profil</button>
-                        <button type="button" onclick="resetPatientFormInputs()" class="btn btn-glass text-[10px] py-1.5 px-3 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fa-solid fa-rotate-left"></i> Tulis Baru</button>
+                            <button type="button" onclick="lookupPatientDatabase()" class="btn btn-primary text-[10px] py-1.5 px-3 font-bold"><i class="fa-solid fa-magnifying-glass"></i> Cari Profil</button>
+                            <button type="button" onclick="resetPatientFormInputs()" class="btn btn-glass text-[10px] py-1.5 px-3 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fa-solid fa-rotate-left"></i> Tulis Baru</button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-3">
+                            <div class="form-group">
+                                <label class="form-label">Nomor Struk Antrean Apotek <span class="text-rose-500">*</span></label>
+                                <input type="text" id="p-reg-queue" class="form-control border-sky-500/30 text-sky-300 font-bold tracking-wider" placeholder="Contoh: A-12 atau B-045">
+                            </div>
+
                             <div class="form-group">
                                 <label class="form-label">Nomor Identitas Pasien (NIK atau JKN BPJS) <span class="text-rose-500">*</span></label>
                                 <input type="text" id="p-reg-identity" class="form-control" placeholder="Ketik NIK atau nomor JKN Jaminan Kesehatan">
@@ -441,7 +450,8 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Sediaan Jenis Obat Pasien <span class="text-rose-500">*</span></label>
+                                <label class="form-label">Sediaan Jenis Obat Pasien <span class="text-amber-400">(Opsional - Boleh Kosong)</span></label>
+                                <p class="text-[9.5px] text-slate-400 mb-1 leading-tight"><i class="fa-solid fa-info-circle text-sky-400 mr-1"></i> Jika Anda tidak hafal, kosongkan saja. Petugas apotek akan mengisinya otomatis sesuai SIM RS.</p>
                                 <div class="flex gap-1.5">
                                     <input type="text" id="p-reg-drug-input" list="kementrian-obat-list" class="form-control" placeholder="Ketik nama obat lalu tekan +" onkeypress="handleDrugInputKeyPress(event)" oninput="updateDrugAutocompleteDatalist(this.value)">
                                     <datalist id="kementrian-obat-list"></datalist>
@@ -775,7 +785,7 @@
                         <table class="w-full text-left border-collapse text-[11px]">
                             <thead>
                                 <tr class="bg-white/[0.01] border-b border-white/10 text-[10px] text-sky-400 uppercase">
-                                    <th class="p-3">Nama Pasien</th>
+                                    <th class="p-3">Nama Pasien / No. Struk</th>
                                     <th class="p-3">Daftar Sediaan</th>
                                     <th class="p-3">Alamat Rumah &amp; HP</th>
                                     <th class="p-3">Status Pengantaran</th>
@@ -1502,15 +1512,191 @@
 
     <!-- MAIN APP CONTROLLERS -->
     <script>
-        // MAIN APP CONTROLLERS
-        // TEMPELKAN KREDENSIAL SUPABASE DAN GAS ANDA DI SINI
-        let SUPABASE_URL = localStorage.getItem("v_supabase_url") || "YOUR_SUPABASE_URL_HERE"; 
-        let SUPABASE_ANON_KEY = localStorage.getItem("v_supabase_anon_key") || "YOUR_SUPABASE_ANON_KEY_HERE";
+        // KREDENSIAL CLOUD SUPABASE DENGAN INTEGRASI FULL ONLINE REAL-TIME
+        let SUPABASE_URL = localStorage.getItem("v_supabase_url") || "https://iouxkoruatxvsfhlwryx.supabase.co"; 
+        let SUPABASE_ANON_KEY = localStorage.getItem("v_supabase_anon_key") || "sb_publishable_YEnLnyCy57calVJvghys0w_gw3UwBNf";
         
         // TEMPELKAN / SEMATKAN LINK GOOGLE APPS SCRIPT (GAS) DI SINI
         let GAS_API_URL = localStorage.getItem("v_gas_api_url") || "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
         
         let APP_CONFIG = {};
+
+        function saveLocalSessionState() {
+            // Hanya simpan nomor WhatsApp login sesi aktif agar pasien tidak ter-logout saat refresh halaman, bukan data transaksi
+            localStorage.setItem("active_patient_wa", STATE.currentOnboardWa || "");
+        }
+
+        function loadLocalSessionState() {
+            // Bebaskan dari ketergantungan local storage untuk transaksi demi menghindari desinkronisasi lokal
+            try {
+                STATE.currentOnboardWa = localStorage.getItem("active_patient_wa") || null;
+            } catch (e) {
+                console.error("Gagal memuat persistent session state:", e);
+            }
+        }
+
+        // Tarik data konfigurasi app_settings, transaksi aktif, dan obrolan secara berkala dari Supabase REST API
+        async function pullRealtimeDataFromCloud() {
+            if (!SUPABASE_URL || SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) return;
+            try {
+                // 1. Tarik sandi admin dinamis & konfigurasi dari tabel app_settings
+                const resConfig = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?select=key,value`, {
+                    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+                });
+                if (resConfig.ok) {
+                    const dataConfig = await resConfig.json();
+                    dataConfig.forEach(item => {
+                        if (item.key === 'admin_password') STATE.admin_password = item.value;
+                        if (item.key === 'bypass_code') STATE.bypass_code = item.value;
+                    });
+                }
+
+                // 2. Tarik Antrean Antaran (transaksi_aktif) untuk koordinasi multi-device
+                const resTrans = await fetch(`${SUPABASE_URL}/rest/v1/transaksi_aktif?select=*`, {
+                    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+                });
+                if (resTrans.ok) {
+                    const dataTrans = await resTrans.json();
+                    STATE.antrean_antaran = dataTrans.map(t => ({
+                        id: t.id_transaksi,
+                        patient_id: t.id_pasien,
+                        nama_lengkap: t.nama_lengkap || "",
+                        nomor_whatsapp: t.nomor_whatsapp || "",
+                        jenis_obat: t.detail_sediaan_obat || "",
+                        kelurahan: t.kelurahan || "",
+                        alamat: t.alamat || "",
+                        gps: t.gps || "",
+                        no_struk_antrean: t.no_struk_antrean || "",
+                        no_smartphone: t.no_smartphone || false,
+                        status: t.status,
+                        accepted_at: t.accepted_at,
+                        completed_at: t.completed_at,
+                        duration: t.duration,
+                        rating: t.rating_survey,
+                        eta_estimation: t.eta_estimation,
+                        created_at: t.created_at
+                    }));
+                }
+
+                // 3. Tarik Obrolan SINTA Aktif (chat_aktif)
+                const resChats = await fetch(`${SUPABASE_URL}/rest/v1/chat_aktif?select=*`, {
+                    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+                });
+                if (resChats.ok) {
+                    const dataChats = await resChats.json();
+                    STATE.chats = dataChats.map(c => ({
+                        patientName: c.nama_pasien,
+                        patientWa: c.nomor_whatsapp_pasien,
+                        isBotActive: c.is_bot_active,
+                        isArchived: c.is_archived || false,
+                        scheduledTime: c.scheduled_time,
+                        lastIncomingTime: c.last_incoming_time,
+                        messages: JSON.parse(c.riwayat_chat || "[]")
+                    }));
+                }
+
+                // Refresh seluruh elemen antarmuka visual agar langsung selaras
+                renderDeliveryTable();
+                renderActiveChatsList();
+                renderKonsultasiLogs();
+                renderHistoryLogs();
+                renderKpiCards();
+                renderAnalyticsWidgets();
+                renderDynamicChart();
+
+                if (STATE.selectedChatSessionIndex !== null) {
+                    selectChatSession(STATE.selectedChatSessionIndex);
+                }
+            } catch (err) {
+                console.warn("Sinkronisasi real-time Supabase gagal:", err);
+            }
+        }
+
+        // Dorong pembaruan chat aktif ke Supabase chat_aktif secara instan
+        function pushChatToSupabase(chatObj) {
+            if (!SUPABASE_URL || SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) return;
+            fetch(`${SUPABASE_URL}/rest/v1/chat_aktif`, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates"
+                },
+                body: JSON.stringify({
+                    nomor_whatsapp_pasien: chatObj.patientWa,
+                    nama_pasien: chatObj.patientName,
+                    is_bot_active: chatObj.isBotActive,
+                    scheduled_time: chatObj.scheduledTime || "08:00",
+                    riwayat_chat: JSON.stringify(chatObj.messages),
+                    last_incoming_time: chatObj.lastIncomingTime || Date.now()
+                })
+            });
+        }
+
+        async function fetchInitialDataFromCloud() {
+            const statusPill = document.getElementById("db-status-pill");
+            if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GOOGLE_APPS_SCRIPT_URL_HERE")) {
+                console.warn("GAS Webhook belum diset. Berjalan dalam mode Memori Lokal.");
+                if (statusPill) {
+                    statusPill.innerText = "Layanan Lokal";
+                    statusPill.className = "bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
+                }
+                return;
+            }
+
+            try {
+                if (statusPill) {
+                    statusPill.innerText = "Menghubungkan...";
+                    statusPill.className = "bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold animate-pulse";
+                }
+
+                // Gunakan Webhook HTTP POST (doPost) yang handal untuk mengambil database Kamus Obat & Pasien
+                const response = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "get_all_data",
+                        data: {}
+                    })
+                });
+
+                const res = await response.json();
+                if (res.status === "success" && res.data) {
+                    const cloudData = res.data;
+                    
+                    // Update database lokal jika ada data dari Google Sheets
+                    if (cloudData.master_pasien && cloudData.master_pasien.length > 0) {
+                        STATE.master_pasien = cloudData.master_pasien;
+                    }
+                    if (cloudData.master_obat && cloudData.master_obat.length > 0) {
+                        STATE.master_obat = cloudData.master_obat;
+                    }
+
+                    if (statusPill) {
+                        statusPill.innerText = "Terhubung Cloud";
+                        statusPill.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
+                    }
+
+                    console.log("Database Kamus Obat & Pasien berhasil disinkronkan dari Google Sheets!");
+                    syncAllPortals();
+                }
+            } catch (err) {
+                console.error("Gagal melakukan penarikan awal dari GAS:", err);
+                if (statusPill) {
+                    statusPill.innerText = "Koneksi Offline";
+                    statusPill.className = "bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
+                }
+            }
+        }
+
+        function logoutPatient() {
+            localStorage.removeItem("active_patient_wa");
+            localStorage.removeItem("sinta_antrean");
+            localStorage.removeItem("sinta_chats");
+            localStorage.removeItem("sinta_resep");
+            location.reload();
+        }
 
         /**
          * Menampilkan dialog modal kustom yang terintegrasi dengan struktur UI
@@ -1617,6 +1803,7 @@
                         Kelurahan: payloadData.kelurahan,
                         Alamat: payloadData.alamat,
                         LinkMaps: payloadData.gps,
+                        NoAntrean: payloadData.no_struk_antrean || "",
                         RiwayatChat: chatHistoryJson
                     };
                 } else if (actionType === "save_drug") {
@@ -1694,15 +1881,23 @@
                 { id: "kel-4", nama: "Kel. Bongki" }
             ],
 
-            // Default Drug database for library lookup
+            // Default Drug database for library lookup (Prefilled with Ministry of Health official data)
             master_obat: [
                 { id: "d1", kode_obat: "OBT-001", nama_obat: "Metformin 500mg", kategori_obat: "Antidiabetes", teks_edukasi: "Metformin wajib diminum segera setelah suapan makan pertama untuk mencegah mual.", efek_samping_utama: "Mual ringan, begah." },
                 { id: "d2", kode_obat: "OBT-002", nama_obat: "Amlodipin 5mg", kategori_obat: "Antihipertensi", teks_edukasi: "Amlodipin diminum sekali sehari pada pagi hari, sesudah makan rutin jam yang sama.", efek_samping_utama: "Sakit kepala ringan." },
-                { id: "d3", kode_obat: "OBT-003", nama_obat: "Paracetamol 500mg", kategori_obat: "Analgetik", teks_edukasi: "Paracetamol diminum saat demam atau nyeri hebat, maksimal 4x sehari sesudah makan.", efek_samping_utama: "Kantuk ringan." }
+                { id: "d3", kode_obat: "OBT-003", nama_obat: "Paracetamol 500mg", kategori_obat: "Analgetik", teks_edukasi: "Paracetamol diminum saat demam atau nyeri hebat, maksimal 4x sehari sesudah makan.", efek_samping_utama: "Kantuk ringan." },
+                { id: "d4", kode_obat: "OBT-004", nama_obat: "abakavir", kategori_obat: "Antivirus", teks_edukasi: "Abacavir dikonsumsi dengan atau tanpa makan. Patuhi jadwal jam yang sama.", efek_samping_utama: "Reaksi hipersensitivitas." },
+                { id: "d5", kode_obat: "OBT-005", nama_obat: "adenosin", kategori_obat: "Anti-aritmia", teks_edukasi: "Penggunaan klinis darurat langsung di bawah pengawasan dokter/apoteker.", efek_samping_utama: "Kemerahan di dada, sesak nafas." },
+                { id: "d6", kode_obat: "OBT-006", nama_obat: "afatinib", kategori_obat: "Antineoplastik", teks_edukasi: "Afatinib wajib diminum saat perut kosong (minimal 1 jam sebelum atau 2 jam setelah makan).", efek_samping_utama: "Diare, sariawan." },
+                { id: "d7", kode_obat: "OBT-007", nama_obat: "acarbose 50mg", kategori_obat: "Antidiabetes", teks_edukasi: "Acarbose diminum bersama suapan makan pertama untuk hasil maksimal.", efek_samping_utama: "Kembung, buang angin." }
             ],
 
-            // Master Pegawai & TTD - DIKOSONGKAN UNTUK DIISI SECARA REAL OLEH USER
-            master_pegawai: [],
+            // Master Pegawai & TTD
+            master_pegawai: [
+                { id: "peg-1", nama: "Apt. Andi Rusli, S.Farm", nip: "SIPA. 19931201/SIPA_7307/2026", wa: "6281355555555", role: "Apoteker Jaga", status: "Aktif", sig_url: "" },
+                { id: "peg-2", nama: "Drs. H. Syahrul, M.Kes", nip: "NIP. 197410051998031004", wa: "6285211112222", role: "Kepala Instalasi", status: "Aktif", sig_url: "" },
+                { id: "peg-3", nama: "kugosss", nip: "-", wa: "6281234567890", role: "Petugas Antar", status: "Aktif", sig_url: "" }
+            ],
 
             // CLEAN INITIAL DATA FOR SESSIONS - NO GHOST DATA PRE-HARDCODED
             master_pasien: [],
@@ -1718,7 +1913,7 @@
                 CLOSE_HOUR: "21:00",
                 KOP_IMAGE_URL: "", 
                 
-                TEMPLATE_SAPA_DAFTAR: "Halo Ibu/Bapak [Nama_Lengkap], permohonan pengantaran obat Anda telah kami terima di sistem SYIFA RSUD Sinjai.\n\nLayanan asisten SINTA siap membantu mengawasi aturan minum obat Anda. Mohon pantau status pengiriman obat Anda secara real-time pada panel di atas halaman ini.",
+                TEMPLATE_SAPA_DAFTAR: "Halo Ibu/Bapak [Nama_Lengkap], permohonan pengantaran obat Anda telah kami terima di sistem SYIFA RSUD Sinjai dengan Nomor Struk Antrean [No_Antrean].\n\nLayanan asisten SINTA siap membantu mengawasi aturan minum obat Anda. Mohon pantau status pengiriman obat Anda secara real-time pada panel di atas halaman ini.",
                 TEMPLATE_SAPA_BELUM_DAFTAR: "Selamat datang di Layanan Informasi Apotek RSUD Sinjai.\n\nNomor Anda belum terdaftar. Untuk mendaftar gratis, isi formulir pada tautan berikut:\n\n🔗 [Link_Web_Pasien]",
                 TEMPLATE_KURIR_PENDING: "Pesanan obat Anda dikirim oleh Petugas Antar, estimasi tiba [Estimasi] menit. Konfirmasi kedatangan obat jika sudah tiba.",
                 TEMPLATE_SAPA_PASCA_TERIMA: "Terima kasih atas konfirmasi dan penilaian Anda, Ibu/Bapak [Nama_Lengkap]! Semoga pelayanan SYIFA memuaskan Anda. Sesi pengantaran obat dinyatakan *Selesai*.\n\nSekarang, mari fokus pada asuhan pengobatan Anda. Silakan balas chat ini dengan mengetik huruf pilihan berikut untuk memulai konsultasi obat:\n\n👉 **[A]** Cara Minum Obat Saya Yang Benar (Edukasi Aturan Pakai)\n👉 **[B]** Lihat Jadwal Pengingat Minum Obat Saya\n👉 **[C]** Hubungkan Saya dengan Apoteker Senior (Konsultasi PIO Langsung)",
@@ -1845,6 +2040,7 @@
                 document.getElementById("p-reg-gender").value = match.jenis_kelamin || "Laki-laki";
                 document.getElementById("p-reg-address").value = match.alamat || "";
                 document.getElementById("p-reg-kelurahan").value = match.kelurahan || "Kel. Balangnipa";
+                document.getElementById("p-reg-queue").value = match.no_struk_antrean || "";
                 
                 if (match.gps) {
                     document.getElementById("p-reg-gps").value = match.gps;
@@ -1879,6 +2075,7 @@
             if (STATE.selectedChatSessionIndex !== null) {
                 selectChatSession(STATE.selectedChatSessionIndex);
             }
+            saveLocalSessionState();
         }
 
         function updateScheduledMedsDropdown(patientId) {
@@ -2812,6 +3009,10 @@
                 STATE.currentPatient = null;
                 STATE.menusUnlocked = true; 
 
+                localStorage.setItem("active_patient_wa", "36");
+                const logoutBtn = document.getElementById("patient-logout-btn");
+                if (logoutBtn) logoutBtn.classList.remove("hidden");
+
                 document.getElementById("profile-name").innerText = "Admin (Tester Mode 36)";
                 document.getElementById("display-active-wa").innerText = "BYPASS-36";
                 document.getElementById("onboarding-overlay").style.display = "none";
@@ -2840,7 +3041,11 @@
             else if (wa.startsWith('+')) wa = wa.slice(1);
 
             STATE.currentOnboardWa = wa;
+            localStorage.setItem("active_patient_wa", wa);
             document.getElementById("display-active-wa").innerText = wa;
+
+            const logoutBtn = document.getElementById("patient-logout-btn");
+            if (logoutBtn) logoutBtn.classList.remove("hidden");
 
             // Tarik data profil termutakhir langsung secara real-time dari Supabase/GAS
             const existingPatient = await fetchRealtimePatientData(wa);
@@ -3081,21 +3286,15 @@
             if (event.key === 'Enter') submitAuthInternal();
         }
 
-        function submitAuthInternal() {
-            const pwEl = document.getElementById("auth-password");
-            if (!pwEl) return;
-            const pw = pwEl.value;
-            if (pw === "sinta2026" || pw === "admin") {
-                STATE.currentUserRole = 'Apoteker_Piket';
-                closeAuthModal(); 
-                document.getElementById("onboarding-overlay").style.display = "none";
-                window.location.hash = '#/portal_apotik';
-            } else {
-                showCustomDialog('danger', 'Akses Ditolak', 'Sandi staf apotek tidak valid. Silakan hubungi kepala instalasi.');
+        function handlePharmacistReplyKeyPress(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitPharmacistReply();
             }
         }
 
         function submitPatientRegistrationWithInterceptor() {
+            const queue = document.getElementById("p-reg-queue").value.trim();
             const name = document.getElementById("p-reg-name").value.trim();
             const age = document.getElementById("p-reg-age").value.trim();
             const identity = document.getElementById("p-reg-identity").value.trim();
@@ -3123,6 +3322,11 @@
                 }
             }
 
+            if (!queue) {
+                showCustomDialog('danger', 'Form Belum Lengkap', 'Nomor Struk Antrean Apotek wajib diisi.');
+                return;
+            }
+
             if (!gps) {
                 const lat = document.getElementById("p-reg-lat").value || STATE.hospitalCoord.lat;
                 const lng = document.getElementById("p-reg-lng").value || STATE.hospitalCoord.lng;
@@ -3131,11 +3335,6 @@
                 if (document.getElementById("p-reg-gps-display-input")) {
                     document.getElementById("p-reg-gps-display-input").value = gps;
                 }
-            }
-
-            if (STATE.temp_drugs.length === 0) {
-                showCustomDialog('danger', 'Obat Belum Diisi', 'Silakan masukkan minimal satu jenis sediaan obat pasien terlebih dahulu.');
-                return;
             }
 
             if (!wa || !name || !age || !identity || !address) {
@@ -3149,10 +3348,11 @@
                 return;
             }
 
-            executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, STATE.temp_drugs.join(", "), isNoSmartphone, isBypass);
+            const obatSediaan = STATE.temp_drugs.length > 0 ? STATE.temp_drugs.join(", ") : "Belum Diverifikasi Petugas (Menunggu SIM RS)";
+            executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, obatSediaan, queue, isNoSmartphone, isBypass);
         }
 
-        function executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, drugsString, isNoSmartphone, isBypass = false) {
+        function executeActualRegistration(identity, name, age, gender, wa, address, kelurahan, gps, drugsString, queue, isNoSmartphone, isBypass = false) {
             if (isBypass) {
                 showCustomDialog('success', 'Simulasi Registrasi Tester', 'Pendaftaran Anda berhasil disimulasikan! Sesi tester "36" tidak mencatat log.');
                 document.getElementById("p-reg-form-panel").classList.add("hidden");
@@ -3179,6 +3379,7 @@
                 patient.kelurahan = kelurahan;
                 patient.jenis_obat = drugsString;
                 patient.jenis_kelamin = gender;
+                patient.no_struk_antrean = queue;
             } else {
                 patient = {
                     id: "PAS-" + Math.floor(10000 + Math.random() * 90000),
@@ -3191,6 +3392,7 @@
                     alamat: address,
                     gps: finalGps,
                     jenis_obat: drugsString,
+                    no_struk_antrean: queue,
                     saved_by_staff: isNoSmartphone,
                     no_smartphone: isNoSmartphone
                 };
@@ -3200,7 +3402,7 @@
             const antaranId = "ANT-" + Math.floor(100 + Math.random() * 900);
             const globalEstimation = document.getElementById("cfg-delivery-estimation") ? document.getElementById("cfg-delivery-estimation").value : "20 Menit";
 
-            STATE.antrean_antaran.push({
+            const newAntaran = {
                 id: antaranId,
                 patient_id: patient.id,
                 nama_lengkap: patient.nama_lengkap,
@@ -3209,6 +3411,7 @@
                 kelurahan: patient.kelurahan,
                 alamat: patient.alamat,
                 gps: patient.gps, 
+                no_struk_antrean: queue,
                 no_smartphone: isNoSmartphone,
                 status: "Pending",
                 accepted_at: null,
@@ -3217,7 +3420,49 @@
                 duration: null,
                 rating: null,
                 eta_estimation: globalEstimation
-            });
+            };
+            STATE.antrean_antaran.push(newAntaran);
+
+            // Push data registrasi baru langsung ke tabel transaksi_aktif Supabase secara real-time
+            if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) {
+                fetch(`${SUPABASE_URL}/rest/v1/pasien_registry`, {
+                    method: "POST",
+                    headers: {
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                        "Content-Type": "application/json",
+                        "Prefer": "resolution=merge-duplicates"
+                    },
+                    body: JSON.stringify({
+                        id_pasien: patient.id,
+                        nomor_whatsapp: patient.nomor_whatsapp
+                    })
+                });
+
+                fetch(`${SUPABASE_URL}/rest/v1/transaksi_aktif`, {
+                    method: "POST",
+                    headers: {
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                        "Content-Type": "application/json",
+                        "Prefer": "resolution=merge-duplicates"
+                    },
+                    body: JSON.stringify({
+                        id_transaksi: antaranId,
+                        id_pasien: patient.id,
+                        nama_lengkap: patient.nama_lengkap,
+                        nomor_whatsapp: patient.nomor_whatsapp,
+                        no_struk_antrean: queue,
+                        detail_sediaan_obat: drugsString,
+                        kelurahan: patient.kelurahan,
+                        alamat: patient.alamat,
+                        gps: patient.gps,
+                        status: "Pending",
+                        eta_estimation: globalEstimation,
+                        created_at: Date.now()
+                    })
+                });
+            }
 
             // Sinkronisasi data pasien secara real-time ke Google Sheets (Tab DataPasien)
             syncToGasWebhook("save_patient", {
@@ -3231,6 +3476,7 @@
                 alamat: patient.alamat,
                 gps: patient.gps,
                 jenis_obat: drugsString,
+                no_struk_antrean: queue,
                 delivery_id: antaranId,
                 status: "Pending"
             });
@@ -3239,10 +3485,11 @@
             STATE.hasNewDelivery = true;
 
             syncPatientMedsToReminders(patient.id, drugsString);
-            syncAllPortals(); 
 
-            const welcomeText = parseMessageTemplate('TEMPLATE_SAPA_DAFTAR', patient);
-            const sysMsg = `[Permintaan Antar Terkirim]\nUsia: ${age} Thn\nSediaan Obat: ${drugsString}\nAlamat: ${kelurahan}, ${address}`;
+            const welcomeText = parseMessageTemplate('TEMPLATE_SAPA_DAFTAR', patient, {
+                no_struk_antrean: queue
+            });
+            const sysMsg = `[Permintaan Antar Terkirim]\nStruk No: ${queue}\nUsia: ${age} Thn\nSediaan Obat: ${drugsString}\nAlamat: ${kelurahan}, ${address}`;
             
             let chatObj = STATE.chats.find(c => c.patientWa === wa);
             if (!chatObj) {
@@ -3272,6 +3519,9 @@
                 chatObj.deliveryId = antaranId;
             }
             
+            // Push chat terbaru ke Supabase
+            pushChatToSupabase(chatObj);
+
             // Trigger notification dot on Chat panel
             STATE.hasNewChat = true;
             renderTopNavigation();
@@ -3287,6 +3537,7 @@
                     document.getElementById("p-reg-identity").value = "";
                     document.getElementById("p-reg-age").value = "";
                     document.getElementById("p-reg-address").value = "";
+                    document.getElementById("p-reg-queue").value = "";
                     STATE.temp_drugs = [];
                     renderDrugsTags();
                 } else {
@@ -3301,6 +3552,7 @@
                     }
                 }
             }
+            syncAllPortals(); 
         }
 
         function syncPatientMedsToReminders(patientId, drugsString) {
@@ -3462,6 +3714,12 @@
                 optionsHtml += `<option value="${c.id}">${c.nama} (+${c.wa})</option>`;
             });
 
+            // Create list of autocomplete suggestions for medications
+            let drugsOptionsHtml = "";
+            STATE.master_obat.forEach(d => {
+                drugsOptionsHtml += `<option value="${d.nama_obat}">`;
+            });
+
             const overlay = document.getElementById("custom-dialog-overlay");
             const iconEl = document.getElementById("dialog-icon");
             const titleEl = document.getElementById("dialog-title");
@@ -3474,11 +3732,27 @@
 
             iconEl.className = "w-11 h-11 rounded-full flex items-center justify-center mx-auto mb-4 text-xl bg-sky-500/15 text-sky-400";
             iconEl.innerHTML = '<i class="fa-solid fa-user-shield"></i>';
-            titleEl.innerText = "Tugaskan Petugas Antar";
-            messageEl.innerHTML = `Pilih Kurir aktif yang akan mengantarkan obat untuk **${ant.nama_lengkap}**:<br><br>
-                <select id="assign-courier-select" class="form-control text-xs py-1.5 bg-slate-900 border-white/10 text-white rounded outline-none w-full">
-                    ${optionsHtml}
-                </select>
+            titleEl.innerText = "Tugaskan Kurir & Verifikasi Obat SIM RS";
+
+            // Tambahkan form isian verifikasi obat dan pemilihan kurir sekaligus
+            messageEl.innerHTML = `
+                <div class="text-left space-y-3.5">
+                    <div class="p-2.5 bg-sky-950/20 border border-sky-400/10 rounded-lg text-[11px]">
+                        <span class="block font-bold text-sky-400">Nomor Struk Antrean Pasien:</span>
+                        <strong class="text-white text-sm font-mono">${ant.no_struk_antrean || '-'}</strong>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1 block">Tulis / Verifikasi Sediaan Obat (Sesuai SIM RS):</label>
+                        <input type="text" id="assign-drugs-input" list="assign-drugs-list" class="form-control text-xs py-2" placeholder="Ketik nama sediaan obat..." value="${ant.jenis_obat.includes('Belum Diverifikasi') ? '' : ant.jenis_obat}">
+                        <datalist id="assign-drugs-list">${drugsOptionsHtml}</datalist>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1 block">Pilih Petugas Kurir SYIFA:</label>
+                        <select id="assign-courier-select" class="form-control text-xs py-1.5 bg-slate-900 border-white/10 text-white rounded outline-none w-full">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                </div>
             `;
 
             btnCancel.classList.remove("hidden");
@@ -3490,6 +3764,8 @@
             btnConfirm.onclick = function() {
                 const selectedCourierId = document.getElementById("assign-courier-select").value;
                 const courier = STATE.master_pegawai.find(p => p.id === selectedCourierId);
+                const verifiedDrugs = document.getElementById("assign-drugs-input").value.trim() || "Obat Terstandar RSUD Sinjai";
+                
                 if (!courier) return;
 
                 ant.status = "Diterima";
@@ -3497,6 +3773,32 @@
                 ant.courier_id = courier.id;
                 ant.courier_name = courier.nama;
                 ant.courier_wa = courier.wa;
+                ant.jenis_obat = verifiedDrugs;
+
+                // Sync obat terbaru kembali ke master pasien
+                const pat = STATE.master_pasien.find(p => p.id === ant.patient_id);
+                if (pat) {
+                    pat.jenis_obat = verifiedDrugs;
+                }
+
+                // Update Supabase transaksi_aktif secara real-time
+                if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) {
+                    fetch(`${SUPABASE_URL}/rest/v1/transaksi_aktif?id_transaksi=eq.${ant.id}`, {
+                        method: "PATCH",
+                        headers: {
+                            "apikey": SUPABASE_ANON_KEY,
+                            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            status: "Diterima",
+                            accepted_at: Date.now(),
+                            nama_kurir: courier.nama,
+                            no_wa_kurir: courier.wa,
+                            detail_sediaan_obat: verifiedDrugs
+                        })
+                    });
+                }
 
                 overlay.classList.add("hidden");
                 overlay.classList.remove("flex");
@@ -3513,7 +3815,7 @@
 
                 let chatObj = STATE.chats.find(c => c.patientWa === ant.nomor_whatsapp);
                 if (chatObj) {
-                    const cleanPendingText = `🚚 <b>PESANAN SEGERA TIBA!</b><br>Obat Anda saat ini sedang dalam perjalanan menuju rumah Anda bersama Petugas Antar kami: <b>${courier.nama}</b> (+${courier.wa}). Estimasi kedatangan: <b>${ant.eta_estimation || '20 Menit'}</b>.<br><br>⚠️ <b>Mohon jangan menutup halaman ini</b> dan segera klik tombol <b>'Terima Pesanan'</b> pada layar Anda jika paket obat telah sampai di tangan Anda.`;
+                    const cleanPendingText = `🚚 <b>PESANAN SEGERA TIBA!</b><br>Obat Anda saat ini sedang dalam perjalanan menuju rumah Anda bersama Petugas Antar kami: <b>${courier.nama}</b> (+${courier.wa}). Estimasi kedatangan: <b>${ant.eta_estimation || '20 Menit'}</b>.<br><br>💊 <b>Sediaan Obat Terverifikasi:</b> ${verifiedDrugs}<br><br>⚠️ <b>Mohon jangan menutup halaman ini</b> dan segera klik tombol <b>'Terima Pesanan'</b> pada layar Anda jika paket obat telah sampai di tangan Anda.`;
                     
                     chatObj.messages.push({ 
                         sender: 'bot', 
@@ -3522,10 +3824,16 @@
                     });
                     chatObj.isAwaitingDeliveryConfirmation = true;
                     chatObj.isBotActive = true; 
+                    pushChatToSupabase(chatObj); // Sync chat ke Supabase
                     renderActiveChatsList();
                 }
 
-                showCustomDialog('success', 'SYIFA Aktif', `Layanan pengantaran obat oleh **${courier.nama}** berhasil diaktifkan.`);
+                // Sinkronisasikan langsung obat terbaru & penugasan kurir ke Google Sheets (Tab Master Pasien)
+                if (pat) {
+                    syncToGasWebhook("save_patient", pat);
+                }
+
+                showCustomDialog('success', 'SYIFA Aktif', `Layanan pengantaran obat oleh **${courier.nama}** berhasil diaktifkan dengan sediaan obat tervalidasi.`);
             };
 
             overlay.classList.remove("hidden");
@@ -3587,6 +3895,24 @@
                 } else {
                     ant.duration = 15;
                 }
+
+                // Update data transaksi selesai di Supabase transaksi_aktif
+                if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) {
+                    fetch(`${SUPABASE_URL}/rest/v1/transaksi_aktif?id_transaksi=eq.${ant.id}`, {
+                        method: "PATCH",
+                        headers: {
+                            "apikey": SUPABASE_ANON_KEY,
+                            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            status: ant.status,
+                            completed_at: Date.now(),
+                            duration: ant.duration,
+                            rating_survey: score
+                        })
+                    });
+                }
             }
 
             STATE.menusUnlocked = true; 
@@ -3607,6 +3933,27 @@
                     });
                     chatObj.isBotActive = true; 
                     chatObj.isAwaitingDeliveryConfirmation = false;
+                    pushChatToSupabase(chatObj); // Sync chat pasca terima ke Supabase
+                }
+
+                // SINKRONISASI AKHIR KE GOOGLE SHEETS & PEMANGKASAN DATA (PRUNING) SUPABASE
+                if (p) {
+                    // Pindahkan data lengkap dan log survey permanen ke Google Sheets via GAS
+                    syncToGasWebhook("save_patient", p);
+
+                    // Pemangkasan (Pruning) data sementara di Supabase (Menghapus koordinat rumah, NIK, alamat)
+                    // demi menjaga privasi pasien serta mencegah penumpukan data (bloat), menyisakan No HP dan ID Pasien saja.
+                    if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) {
+                        fetch(`${SUPABASE_URL}/rest/v1/transaksi_aktif?id_transaksi=eq.${ant.id}`, {
+                            method: "DELETE",
+                            headers: {
+                                "apikey": SUPABASE_ANON_KEY,
+                                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                            }
+                        }).then(resp => {
+                            if (resp.ok) console.log("Supabase transient data pruned successfully!");
+                        }).catch(e => console.warn("Pruning Supabase failed:", e));
+                    }
                 }
             }
 
@@ -3669,7 +4016,10 @@
                 const tr = document.createElement("tr");
                 tr.className = "hover:bg-white/[0.015] border-b border-white/5 transition-colors duration-150 text-xs";
                 tr.innerHTML = `
-                    <td class="p-3"><code class="text-xs bg-white/5 border border-white/5 px-2 py-1 rounded text-cyan-400 font-bold">${p.id}</code></td>
+                    <td class="p-3">
+                        <code class="text-xs bg-white/5 border border-white/5 px-2 py-1 rounded text-cyan-400 font-bold">${p.id}</code>
+                        <div class="text-[10px] text-amber-400 font-bold mt-1.5"><i class="fa-solid fa-ticket"></i> Antrean: ${p.no_struk_antrean || '-'}</div>
+                    </td>
                     <td class="p-3">
                         <div class="text-white font-bold">${p.nama_lengkap}</div>
                         <div class="text-[10px] text-slate-400 mt-0.5">${p.usia ? p.usia + ' Tahun' : '-'} ${ageBadge}</div>
@@ -4335,6 +4685,7 @@
                 if (c.isBotActive) {
                     setTimeout(() => {
                         handleBotResponse(c, text);
+                        pushChatToSupabase(c); // Sync chat ke Supabase setelah respons bot
                         selectChatSession(STATE.selectedChatSessionIndex);
                         renderKonsultasiLogs();
 
@@ -4345,14 +4696,16 @@
                         }
                     }, 800);
                 } else {
-                    // Masih dalam mode obrolan staf, sinkronisasi pesan baru ke tab MASTER_PASIEN
+                    // Masih dalam mode obrolan staf, sinkronisasi pesan baru ke tab MASTER_PASIEN dan Supabase
+                    pushChatToSupabase(c);
                     const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
                     if (p) {
                         syncToGasWebhook("save_patient", p);
                     }
                 }
             } else {
-                // Petugas apotek membalas chat pasien, langsung sinkronisasikan riwayat chat terbaru ke tab MASTER_PASIEN
+                // Petugas apotek membalas chat pasien, langsung sinkronisasikan riwayat chat terbaru ke tab MASTER_PASIEN dan Supabase
+                pushChatToSupabase(c);
                 const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
                 if (p) {
                     syncToGasWebhook("save_patient", p);
@@ -4361,6 +4714,69 @@
 
             selectChatSession(STATE.selectedChatSessionIndex);
             renderKonsultasiLogs();
+        }
+
+        function handleBotResponse(c, rawText) {
+            if (!c.isBotActive) return;
+
+            const text = rawText.trim().toUpperCase();
+            let replyText = "";
+
+            if (text === "A") {
+                // Pilihan A: Aturan Pakai Obat
+                const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
+                let medsList = "";
+                if (p && p.jenis_obat) {
+                    const meds = p.jenis_obat.split(', ').filter(Boolean);
+                    meds.forEach(mName => {
+                        const matchObat = STATE.master_obat.find(o => o.nama_obat.toLowerCase().includes(mName.toLowerCase()));
+                        const rule = matchObat ? matchObat.teks_edukasi : "Diminum sesuai petunjuk etiket apotek harian.";
+                        medsList += `• <b>${mName}</b>: ${rule}<br>`;
+                    });
+                } else {
+                    medsList = "• Belum ada resep terdaftar untuk profil Anda saat ini.";
+                }
+
+                replyText = parseMessageTemplate('TEMPLATE_EDUKASI_OBAT', p, {
+                    daftar_obat: medsList
+                });
+                STATE.kpi.educationCount++;
+            } else if (text === "B") {
+                // Pilihan B: Lihat Jadwal Alarm Pengingat
+                const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
+                const activeResep = STATE.transaksi_resep_pasien.filter(r => r.pasien_id === (p ? p.id : ""));
+                
+                let scheduleText = "";
+                if (activeResep.length > 0) {
+                    activeResep.forEach(r => {
+                        scheduleText += `⏰ <b>Jam ${r.jam_konsumsi} WITA</b>: ${r.obat_id} (${r.aturan_pakai})<br>`;
+                    });
+                } else {
+                    scheduleText = "Belum ada jadwal alarm harian yang diaktifkan apoteker.";
+                }
+
+                replyText = `📅 <b>DAFTAR JADWAL ALARM SINTA</b><br>Berikut adalah daftar alarm konsumsi aktif Anda:<br><br>${scheduleText}<br><br>Ketik <b>[Menu]</b> untuk kembali ke pilihan utama.`;
+            } else if (text === "C") {
+                // Pilihan C: Hubungkan ke Apoteker Senior
+                const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
+                replyText = parseMessageTemplate('TEMPLATE_BUTUH_APOTEKER', p);
+                
+                // Matikan robot agar kendali penuh beralih ke Staf / Apoteker Piket
+                c.isBotActive = false; 
+                STATE.hasNewChat = true; 
+            } else if (text === "MENU" || text === "[MENU]") {
+                const p = STATE.master_pasien.find(x => x.nomor_whatsapp === c.patientWa);
+                replyText = parseMessageTemplate('TEMPLATE_SAPA_PASCA_TERIMA', p);
+            } else {
+                // Default Instruksi Salah
+                replyText = `Mohon maaf, asisten SINTA tidak mengenali instruksi tersebut.<br><br>Silakan balas dengan mengetik pilihan menu:<br>👉 <b>[A]</b> Cara Minum Obat Saya Yang Benar<br>👉 <b>[B]</b> Lihat Jadwal Pengingat Minum Obat<br>👉 <b>[C]</b> Hubungkan Saya dengan Apoteker Senior<br>👉 Ketik <b>[Menu]</b> untuk kembali ke pilihan utama.`;
+            }
+
+            c.messages.push({
+                sender: 'bot',
+                text: replyText,
+                time: getCurrentWitaTime()
+            });
         }
 
         function switchDeliverySubmodule(sub) {
@@ -5907,7 +6323,7 @@
 
         window.onload = async function() {
             try {
-                // Tahap 4: Menarik konfigurasi utama dari Supabase secara asinkron di baris pertama
+                // Tarik konfigurasi utama dari Supabase secara asinkron
                 await fetchConfiguration();
             } catch (configError) {
                 console.error("Configuration bootstrapping failed. Fallbacks active.", configError);
@@ -5925,7 +6341,26 @@
                 renderGlobalWaktuDropdown();
                 renderDrugsTags();
 
+                // Load session info login tapi jangan memuat transaksi offline local storage
+                loadLocalSessionState();
+
+                // Lakukan penarikan pertama real-time Supabase
+                await pullRealtimeDataFromCloud();
+
+                // Tarik database terpusat dari Google Sheets secara real-time
+                await fetchInitialDataFromCloud();
+
                 syncAllPortals();
+
+                // Auto recovery session jika mendeteksi active_patient_wa
+                const savedWa = localStorage.getItem("active_patient_wa");
+                if (savedWa) {
+                    const waInput = document.getElementById("onboard-wa-input");
+                    if (waInput) {
+                        waInput.value = savedWa;
+                        submitOnboardingAccess();
+                    }
+                }
 
             } catch(e) {
                 console.error("Kesalahan inisialisasi tahap 1:", e);
@@ -5970,13 +6405,21 @@
                 }
             });
 
-            // Interval Terjadwal WITA & Detektor Pemicu Alarm SINTA Chatbot Otomatis
-            setInterval(() => {
+            // Interval Terjadwal WITA, sinkronisasi cloud real-time, & Detektor Pemicu Alarm SINTA Chatbot Otomatis
+            let syncIntervalCounter = 0;
+            setInterval(async () => {
                 const now = new Date();
                 const opt = { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Makassar' };
                 const timerEl = document.getElementById("live-wita-timer");
                 if (timerEl) timerEl.innerText = now.toLocaleTimeString('id-ID', opt) + " WITA";
                 updateServiceStatusUI();
+
+                // LAKUKAN SINKRONISASI REAL-TIME CLOUD TANPA POLLING BERLEBIHAN (Setiap 5 detik sekali)
+                syncIntervalCounter++;
+                if (syncIntervalCounter >= 5) {
+                    syncIntervalCounter = 0;
+                    await pullRealtimeDataFromCloud();
+                }
 
                 const currentHHMM = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Makassar' }); // Format: "HH:MM"
                 
@@ -5989,6 +6432,8 @@
                             text: `🚨 <b>[SINTA ALARM PENGINGAT OTOMATIS]</b><br>Halo Ibu/Bapak <b>${c.patientName}</b> tercinta. Sekarang sudah memasuki waktu minum obat Anda yang dijadwalkan pada jam <b>${currentHHMM} WITA</b>.<br><br>Mohon pastikan obat dikonsumsi sesuai instruksi dosis dan aturan pakai yang benar demi mempercepat pemulihan Anda. Terima kasih!`,
                             time: getCurrentWitaTime()
                         });
+
+                        pushChatToSupabase(c); // Sinkronisasikan alarm terpicu ke database Supabase
 
                         if (STATE.selectedChatSessionIndex === idx) {
                             selectChatSession(idx);
