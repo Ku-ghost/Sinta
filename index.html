@@ -2456,6 +2456,13 @@
                 switchModule('pub-beranda-module');
             } else if (currentHash.startsWith('#/portal_apotik')) {
                 STATE.portal = 'internal';
+                
+                // PERBAIKAN: Otomatis sembunyikan layar onboarding saat staf masuk langsung ke dasbor
+                const onboardingOverlay = document.getElementById("onboarding-overlay");
+                if (onboardingOverlay) {
+                    onboardingOverlay.style.display = "none";
+                }
+
                 const adminGateBtn = document.getElementById("admin-gate-btn");
                 if (adminGateBtn) {
                     adminGateBtn.classList.remove("hidden");
@@ -3284,6 +3291,24 @@
 
         function handleAuthKeyPress(event) {
             if (event.key === 'Enter') submitAuthInternal();
+        }
+
+        function submitAuthInternal() {
+            const passwordInput = document.getElementById("auth-password");
+            if (!passwordInput) return;
+            const enteredPassword = passwordInput.value.trim();
+
+            // Mengambil sandi dinamis dari database Supabase (STATE.admin_password) atau fallback ke 'sinta2026'
+            const correctPassword = STATE.admin_password || "sinta2026";
+
+            if (enteredPassword === correctPassword) {
+                STATE.currentUserRole = 'Apoteker_Piket';
+                closeAuthModal();
+                showCustomDialog('success', 'Akses Diterima', 'Selamat datang kembali, Petugas Apotek RSUD Sinjai!');
+                window.location.hash = '#/portal_apotik';
+            } else {
+                showCustomDialog('danger', 'Akses Ditolak', 'Sandi otorisasi staf yang Anda masukkan salah. Silakan coba lagi.');
+            }
         }
 
         function handlePharmacistReplyKeyPress(event) {
