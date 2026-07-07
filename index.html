@@ -1522,38 +1522,12 @@
         let APP_CONFIG = {};
 
         function saveLocalSessionState() {
-            localStorage.setItem("v_supabase_url", SUPABASE_URL || "");
-            localStorage.setItem("v_supabase_anon_key", SUPABASE_ANON_KEY || "");
-            localStorage.setItem("v_gas_api_url", GAS_API_URL || "");
-            if (STATE.currentOnboardWa) {
-                localStorage.setItem("v_current_onboard_wa", STATE.currentOnboardWa);
-            }
-            if (STATE.currentPatient) {
-                localStorage.setItem("v_current_patient", JSON.stringify(STATE.currentPatient));
-            }
+            // Dikosongkan: Local Storage dihapus sepenuhnya untuk menjaga kemurnian memori inti aplikasi (Pure SPA).
         }
 
         function loadLocalSessionState() {
-            const url = localStorage.getItem("v_supabase_url");
-            const key = localStorage.getItem("v_supabase_anon_key");
-            const gas = localStorage.getItem("v_gas_api_url");
-            if (url) SUPABASE_URL = url;
-            if (key) SUPABASE_ANON_KEY = key;
-            if (gas) GAS_API_URL = gas;
-
-            const savedWa = localStorage.getItem("v_current_onboard_wa");
-            if (savedWa) {
-                STATE.currentOnboardWa = savedWa;
-                if (savedWa === "36") {
-                    STATE.currentUserRole = "Tester";
-                }
-            }
-            const savedPatient = localStorage.getItem("v_current_patient");
-            if (savedPatient) {
-                try {
-                    STATE.currentPatient = JSON.parse(savedPatient);
-                } catch(e) {}
-            }
+            // Dikosongkan: Sesi kini murni bergantung pada RAM yang berjalan (Volatile Memory).
+            STATE.currentOnboardWa = null;
         }
 
         // Tarik data konfigurasi app_settings, transaksi aktif, dan obrolan secara berkala dari Supabase REST API
@@ -1657,7 +1631,7 @@
 
         async function fetchInitialDataFromCloud() {
             const statusPill = document.getElementById("db-status-pill");
-            if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GOOGLE_APPS_SCRIPT_URL_HERE") || GAS_API_URL === "") {
+            if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GOOGLE_APPS_SCRIPT_URL_HERE")) {
                 console.warn("GAS Webhook belum diset. Berjalan dalam mode Memori Lokal.");
                 if (statusPill) {
                     statusPill.innerText = "Layanan Lokal";
@@ -1672,10 +1646,10 @@
                     statusPill.className = "bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold animate-pulse";
                 }
 
-                // Menggunakan header text/plain untuk melewati preflight CORS OPTIONS yang sering diblokir Google
+                // Gunakan Webhook HTTP POST (doPost) yang handal untuk mengambil database Kamus Obat & Pasien
                 const response = await fetch(GAS_API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: "get_all_data",
                         data: {}
@@ -1704,17 +1678,9 @@
                 }
             } catch (err) {
                 console.error("Gagal melakukan penarikan awal dari GAS:", err);
-                // Pertahankan status hijau jika koneksi database utama Supabase terdeteksi aktif
-                if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_SUPABASE_URL_HERE")) {
-                    if (statusPill) {
-                        statusPill.innerText = "Terhubung Cloud";
-                        statusPill.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
-                    }
-                } else {
-                    if (statusPill) {
-                        statusPill.innerText = "Koneksi Offline";
-                        statusPill.className = "bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
-                    }
+                if (statusPill) {
+                    statusPill.innerText = "Koneksi Offline";
+                    statusPill.className = "bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
                 }
             }
         }
@@ -2953,16 +2919,13 @@
             })
             .then(response => {
                 if (response.ok) {
-                    // Update ke variabel sistem memori secara langsung
+                    // Update ke variabel sistem memori secara langsung (Tanpa Local Storage)
                     if (gasInput) {
                         GAS_API_URL = gasInput;
                     }
                     
                     SUPABASE_URL = urlInput;
                     SUPABASE_ANON_KEY = keyInput;
-
-                    // Simpan ke LocalStorage agar langsung aktif setiap kali refresh
-                    saveLocalSessionState();
 
                     // Berikan indikator visual aktif
                     const statusPill = document.getElementById("db-status-pill");
@@ -2992,12 +2955,6 @@
                 SUPABASE_URL = "YOUR_SUPABASE_URL_HERE";
                 SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
                 GAS_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
-
-                localStorage.removeItem("v_supabase_url");
-                localStorage.removeItem("v_supabase_anon_key");
-                localStorage.removeItem("v_gas_api_url");
-                localStorage.removeItem("v_current_onboard_wa");
-                localStorage.removeItem("v_current_patient");
 
                 const statusPill = document.getElementById("db-status-pill");
                 if (statusPill) {
@@ -6373,9 +6330,6 @@
         }
 
         window.onload = async function() {
-            // LANGKAH PALING PERTAMA: Load saved credentials dari LocalStorage agar tidak kena reset / offline saat refresh
-            loadLocalSessionState();
-
             // Ambil konfigurasi terbaru dari Supabase
             try {
                 await fetchConfiguration();
@@ -6394,6 +6348,9 @@
                 renderMasterWaktuTable();
                 renderGlobalWaktuDropdown();
                 renderDrugsTags();
+
+                // Load session info login murni dari RAM
+                loadLocalSessionState();
 
                 // Lakukan penarikan pertama real-time Supabase
                 await pullRealtimeDataFromCloud();
@@ -6474,7 +6431,7 @@
                             time: getCurrentWitaTime()
                         });
 
-                        pushChatToSupabase(c); // Sync chat ke Supabase
+                        pushChatToSupabase(c); // Sinkronisasikan alarm terpicu ke database Supabase
 
                         if (STATE.selectedChatSessionIndex === idx) {
                             selectChatSession(idx);
